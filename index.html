@@ -1,81 +1,890 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Drop & Share</title>
-    <meta name="theme-color" content="#F3EDF7">
-    <link rel="manifest" href="manifest.json">
-    
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1A73E8">
+  <meta name="description" content="Fast P2P file & text sharing – just scan a QR code">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DropShare">
+  <title>DropShare - P2P Sharing</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1A73E8;
+      --primary-dark: #1557B0;
+      --primary-light: #D2E3FC;
+      --surface: #FFFFFF;
+      --surface-2: #F8FAFD;
+      --surface-3: #F1F3F4;
+      --background: #E8EAED;
+      --error: #D93025;
+      --success: #1E8E3E;
+      --on-surface: #202124;
+      --on-surface-medium: #5F6368;
+      --on-surface-light: #80868B;
+      --outline: #DADCE0;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+      --radius: 16px;
+      --radius-sm: 12px;
+      --radius-full: 9999px;
+      --transition: 0.2s ease;
+      --font: 'Roboto', sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font);
+      background: var(--background);
+      color: var(--on-surface);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .app {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: var(--primary);
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #F1F3F4;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .status.online { background: #E6F4EA; color: #1E8E3E; }
+    .status.connected { background: #E8F0FE; color: #1A73E8; }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9AA0A6;
+    }
+    .dot.green { background: #1E8E3E; }
+    .dot.blue { background: #1A73E8; }
 
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--on-surface-medium);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: var(--radius-full);
+      font-family: var(--font);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+      text-decoration: none;
+      background: var(--surface-3);
+      color: var(--on-surface);
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-danger { background: var(--error); color: #fff; }
+    .btn-lg { padding: 14px 28px; font-size: 1rem; }
+    .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+    .btn:disabled { opacity: 0.5; pointer-events: none; }
+
+    .qr-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .qr-container {
+      background: #fff;
+      border: 2px dashed var(--outline);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .peer-id {
+      font-family: monospace;
+      background: var(--surface-3);
+      padding: 8px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      word-break: break-all;
+      user-select: all;
+    }
+    .connect-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .connect-row input {
+      flex: 1;
+      min-width: 180px;
+      padding: 10px 16px;
+      border: 2px solid var(--outline);
+      border-radius: var(--radius-full);
+      font-family: monospace;
+      font-size: 0.9rem;
+      transition: var(--transition);
+    }
+    .connect-row input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--outline);
+      border-radius: var(--radius);
+      padding: 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--surface-2);
+    }
+    .drop-zone.drag-over { border-color: var(--primary); background: var(--primary-light); }
+    .file-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .file-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface-2);
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+    }
+    .file-chip span { cursor: pointer; color: var(--error); }
+
+    .received-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      flex-wrap: wrap;
+    }
+    .received-item .item-info { flex: 1; min-width: 150px; }
+    .received-item .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 90%;
+      max-width: 400px;
+      pointer-events: none;
+    }
+    .toast {
+      background: #323232;
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      box-shadow: var(--shadow-md);
+      animation: fadeInOut 3s forwards;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(10px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .progress-bar {
+      height: 6px;
+      background: #E8EAED;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar div {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.2s;
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+    @media (max-width: 480px) {
+      .app { padding: 12px; gap: 12px; }
+      .card { padding: 14px; }
+    }
+  </style>
 </head>
 <body>
+  <div class="app">
+    <div class="header">
+      <div class="logo">
+        <span class="material-icons-round">swap_horiz</span> DropShare
+      </div>
+      <div class="status" id="statusBadge">
+        <span class="dot"></span> <span id="statusText">Initializing</span>
+      </div>
+    </div>
 
-    <header class="top-app-bar">
-        <h1 class="title">Drop & Share</h1>
-        <button id="download-all-btn" class="icon-btn hidden" title="Download All Files">
-            <span class="material-symbols-rounded">download_for_offline</span>
-        </button>
-    </header>
-
-    <main id="app-container">
-        
-        <div id="connection-view" class="view active">
-            <div class="card">
-                <h2>Your Device</h2>
-                <div id="qrcode-container" class="qr-box">
-                    <div id="qrcode"></div>
-                </div>
-                <p class="subtitle">Scan to connect directly</p>
-                
-                <div class="divider"><span>OR</span></div>
-                
-                <button id="scan-btn" class="btn primary-btn">
-                    <span class="material-symbols-rounded">qr_code_scanner</span>
-                    Scan QR Code
-                </button>
-            </div>
-            
-            <div id="scanner-modal" class="modal hidden">
-                <div class="modal-content">
-                    <h3>Scan Receiver's QR</h3>
-                    <div id="reader"></div>
-                    <button id="close-scanner-btn" class="btn text-btn">Close</button>
-                </div>
-            </div>
+    <!-- Your ID card -->
+    <div class="card">
+      <div class="card-title">
+        <span class="material-icons-round">qr_code_2</span> Your Connection ID
+      </div>
+      <div class="qr-box">
+        <div class="qr-container" id="qrContainer"></div>
+        <div class="peer-id" id="peerIdDisplay">---</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-sm" onclick="copyPeerId()"><span class="material-icons-round">content_copy</span> Copy ID</button>
+          <button class="btn btn-sm" onclick="copyShareLink()"><span class="material-icons-round">link</span> Copy Link</button>
         </div>
+      </div>
+    </div>
 
-        <div id="transfer-view" class="view hidden">
-            <div class="connection-status">
-                <span class="material-symbols-rounded status-icon">wifi_tethering</span>
-                <span id="peer-status">Connected</span>
-            </div>
+    <!-- Connect card -->
+    <div class="card">
+      <div class="card-title">
+        <span class="material-icons-round">link</span> Connect to a Device
+      </div>
+      <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;" onclick="openQRScanner()">
+        <span class="material-icons-round">qr_code_scanner</span> Scan QR Code
+      </button>
+      <div class="connect-row">
+        <input type="text" id="remotePeerId" placeholder="Or enter Peer ID">
+        <button class="btn btn-primary" id="btnConnect" onclick="connectToPeer()">Connect</button>
+      </div>
+      <button class="btn btn-danger btn-sm" id="btnDisconnect" style="display:none;" onclick="disconnectAll()">Disconnect</button>
+    </div>
 
-            <div id="messages-container" class="messages-area">
-                </div>
+    <!-- Share card -->
+    <div class="card">
+      <div class="card-title">
+        <span class="material-icons-round">upload</span> Share Files & Text
+      </div>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <span class="material-icons-round" style="font-size:2rem;color:var(--primary);">cloud_upload</span>
+        <p>Tap or drop files here</p>
+        <small>No limit on number of files</small>
+      </div>
+      <input type="file" id="fileInput" multiple hidden>
+      <div class="file-list" id="fileList"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <textarea id="textToSend" placeholder="Write a message..." style="flex:1; min-width:150px; padding:10px; border-radius:var(--radius-sm); border:2px solid var(--outline); resize:vertical; min-height:60px;"></textarea>
+        <button class="btn btn-primary" id="btnSendText" onclick="sendText()" disabled>Send Text</button>
+      </div>
+      <button class="btn btn-primary btn-lg" id="btnSendFiles" onclick="sendAllFiles()" disabled style="width:100%;justify-content:center;">
+        <span class="material-icons-round">send</span> Send Files (<span id="fileCount">0</span>)
+      </button>
+      <div class="progress-bar" id="sendProgressWrapper" style="display:none;"><div id="sendProgress"></div></div>
+      <div id="sendProgressText" style="font-size:0.8rem;color:var(--on-surface-medium);"></div>
+    </div>
 
-            <div class="input-area">
-                <input type="file" id="file-input" multiple hidden>
-                <button id="attach-btn" class="icon-btn attach-btn">
-                    <span class="material-symbols-rounded">add</span>
-                </button>
-                <input type="text" id="text-input" placeholder="Type a message..." autocomplete="off">
-                <button id="send-btn" class="icon-btn send-btn primary-btn">
-                    <span class="material-symbols-rounded">send</span>
-                </button>
-            </div>
+    <!-- Received card -->
+    <div class="card">
+      <div class="card-title">
+        <span class="material-icons-round">download</span> Received Items
+      </div>
+      <div id="receivedList" style="display:flex; flex-direction:column; gap:8px;">
+        <p style="text-align:center;color:var(--on-surface-light);">Nothing yet</p>
+      </div>
+      <div id="batchActions" style="display:none; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <span id="selectedCount">0 selected</span>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm" onclick="toggleSelectAll()">Select All</button>
+          <button class="btn btn-primary btn-sm" id="btnDownloadSelected" onclick="downloadSelected()" disabled>Download Selected</button>
+          <button class="btn btn-sm" onclick="downloadAllAsZip()">ZIP All</button>
         </div>
+      </div>
+    </div>
+  </div>
 
-    </main>
+  <!-- QR Scanner Modal -->
+  <div class="modal" id="qrModal">
+    <div class="modal-content">
+      <h3 style="margin-bottom:12px;">Scan QR Code</h3>
+      <div id="qrScanner" style="width:100%; min-height:200px;"></div>
+      <button class="btn btn-sm" style="margin-top:12px;" onclick="closeQRScanner()">Close</button>
+    </div>
+  </div>
 
-    <div id="toast" class="toast hidden">Copied!</div>
+  <div class="toast-container" id="toastContainer"></div>
 
-    <script src="app.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script>
+    (function() {
+      // ---- State ----
+      const state = {
+        peer: null,
+        peerId: null,
+        controlConns: {},   // peerId -> DataConnection (json)
+        fileConns: {},      // peerId -> DataConnection (binary)
+        selectedFiles: [],
+        receivedItems: [],
+        pendingChunks: {},
+        isSending: false,
+        qrScanner: null,
+      };
+
+      // ---- Helpers ----
+      const $ = s => document.querySelector(s);
+      const $$ = s => document.querySelectorAll(s);
+
+      function toast(msg, type='info') {
+        const div = document.createElement('div');
+        div.className = 'toast';
+        div.innerHTML = msg;
+        $('#toastContainer').appendChild(div);
+        setTimeout(() => div.remove(), 3200);
+      }
+
+      function setStatus(status, text) {
+        const badge = $('#statusBadge');
+        const dot = badge.querySelector('.dot');
+        badge.className = 'status';
+        if (status === 'online') { badge.classList.add('online'); dot.className = 'dot green'; }
+        else if (status === 'connected') { badge.classList.add('connected'); dot.className = 'dot blue'; }
+        else { dot.className = 'dot'; }
+        $('#statusText').textContent = text;
+      }
+
+      function formatSize(bytes) {
+        if (!bytes) return '0 B';
+        const k = 1024;
+        const sizes = ['B','KB','MB','GB'];
+        const i = Math.floor(Math.log(bytes)/Math.log(k));
+        return parseFloat((bytes/Math.pow(k,i)).toFixed(2)) + ' ' + sizes[i];
+      }
+
+      function updateSendUI() {
+        const hasConn = Object.keys(state.controlConns).length > 0;
+        $('#btnSendFiles').disabled = !hasConn || state.selectedFiles.length === 0 || state.isSending;
+        $('#btnSendText').disabled = !hasConn || !$('#textToSend').value.trim() || state.isSending;
+        $('#fileCount').textContent = state.selectedFiles.length;
+        if (hasConn) {
+          $('#btnDisconnect').style.display = 'inline-flex';
+        } else {
+          $('#btnDisconnect').style.display = 'none';
+        }
+      }
+
+      function renderFileList() {
+        const container = $('#fileList');
+        if (state.selectedFiles.length === 0) {
+          container.innerHTML = '';
+          return;
+        }
+        container.innerHTML = state.selectedFiles.map((f, i) => `
+          <div class="file-chip">
+            <span>${f.file.name} (${formatSize(f.file.size)})</span>
+            <span class="material-icons-round" onclick="removeFile('${f.id}')" style="font-size:18px;">close</span>
+          </div>
+        `).join('');
+      }
+
+      window.removeFile = (id) => {
+        state.selectedFiles = state.selectedFiles.filter(f => f.id !== id);
+        renderFileList();
+        updateSendUI();
+      };
+
+      // ---- PeerJS Init ----
+      function initPeer() {
+        state.peer = new Peer(undefined, { debug: 0 });
+        state.peer.on('open', id => {
+          state.peerId = id;
+          $('#peerIdDisplay').textContent = id;
+          setStatus('online', 'Ready');
+          generateQR(id);
+          checkURL();
+        });
+        state.peer.on('connection', conn => {
+          handleIncoming(conn);
+        });
+        state.peer.on('error', err => {
+          console.error(err);
+          toast('Peer error: ' + (err.message || err.type), 'error');
+        });
+        state.peer.on('disconnected', () => {
+          setStatus('offline', 'Disconnected');
+          state.peer.reconnect();
+        });
+      }
+
+      function generateQR(id) {
+        $('#qrContainer').innerHTML = '';
+        new QRCode($('#qrContainer'), {
+          text: id,
+          width: 180,
+          height: 180,
+          colorDark: '#1A73E8',
+          colorLight: '#FFFFFF',
+        });
+      }
+
+      function checkURL() {
+        const params = new URLSearchParams(location.search);
+        const connectId = params.get('connect');
+        if (connectId && connectId !== state.peerId) {
+          $('#remotePeerId').value = connectId;
+          toast('Peer ID from link – click Connect', 'info');
+        }
+      }
+
+      // ---- Connection management ----
+      function connectToPeer() {
+        const remoteId = $('#remotePeerId').value.trim();
+        if (!remoteId || remoteId === state.peerId) return toast('Invalid Peer ID', 'error');
+        if (state.controlConns[remoteId]) return toast('Already connected', 'info');
+
+        $('#btnConnect').disabled = true;
+        // Create control channel (json)
+        const ctrlConn = state.peer.connect(remoteId, { label: 'control', serialization: 'json', reliable: true });
+        setupControlConn(ctrlConn, remoteId);
+        // Create file channel (binary)
+        const fileConn = state.peer.connect(remoteId, { label: 'file', serialization: 'binary', reliable: true });
+        setupFileConn(fileConn, remoteId);
+      }
+
+      function handleIncoming(conn) {
+        const remoteId = conn.peer;
+        if (conn.label === 'control') {
+          if (state.controlConns[remoteId]) { conn.close(); return; }
+          setupControlConn(conn, remoteId);
+        } else if (conn.label === 'file') {
+          if (state.fileConns[remoteId]) { conn.close(); return; }
+          setupFileConn(conn, remoteId);
+        }
+      }
+
+      function setupControlConn(conn, remoteId) {
+        state.controlConns[remoteId] = conn;
+        conn.on('open', () => {
+          setStatus('connected', 'Connected');
+          $('#btnConnect').disabled = false;
+          updateSendUI();
+          toast('Connected to device!', 'success');
+        });
+        conn.on('data', data => {
+          if (data.type === 'text') receiveText(data);
+          else if (data.type === 'file-meta') receiveFileMeta(data, remoteId);
+          else if (data.type === 'file-end') receiveFileEnd(data, remoteId);
+        });
+        conn.on('close', () => cleanupConnection(remoteId));
+        conn.on('error', () => cleanupConnection(remoteId));
+      }
+
+      function setupFileConn(conn, remoteId) {
+        state.fileConns[remoteId] = conn;
+        conn.on('open', () => {
+          // ready for binary data
+        });
+        conn.on('data', (arrayBuffer) => {
+          receiveFileChunk(arrayBuffer, remoteId);
+        });
+        conn.on('close', () => cleanupConnection(remoteId));
+        conn.on('error', () => cleanupConnection(remoteId));
+      }
+
+      function cleanupConnection(remoteId) {
+        delete state.controlConns[remoteId];
+        delete state.fileConns[remoteId];
+        delete state.pendingChunks[remoteId];
+        if (Object.keys(state.controlConns).length === 0) setStatus('online', 'Ready');
+        updateSendUI();
+        $('#btnConnect').disabled = false;
+      }
+
+      function disconnectAll() {
+        Object.values(state.controlConns).forEach(c => c.close());
+        Object.values(state.fileConns).forEach(c => c.close());
+        state.controlConns = {};
+        state.fileConns = {};
+        setStatus('online', 'Ready');
+        updateSendUI();
+        toast('Disconnected', 'info');
+      }
+
+      // ---- Send functions ----
+      async function sendText() {
+        const text = $('#textToSend').value.trim();
+        if (!text) return;
+        const ctrls = Object.values(state.controlConns);
+        if (ctrls.length === 0) return toast('No connection', 'error');
+        const msg = { type: 'text', content: text };
+        ctrls.forEach(c => c.send(msg));
+        // Add to own received as sent
+        state.receivedItems.push({ id: 'txt-'+Date.now(), type:'text', text, name:'Message', size: new Blob([text]).size, timestamp: Date.now() });
+        renderReceived();
+        $('#textToSend').value = '';
+        updateSendUI();
+        toast('Text sent', 'success');
+      }
+
+      async function sendAllFiles() {
+        if (state.selectedFiles.length === 0 || state.isSending) return;
+        const fileConns = Object.values(state.fileConns);
+        const ctrlConns = Object.values(state.controlConns);
+        if (fileConns.length === 0) return toast('No file channel', 'error');
+        state.isSending = true;
+        updateSendUI();
+        const CHUNK_SIZE = 64 * 1024; // 64KB
+
+        for (let i = 0; i < state.selectedFiles.length; i++) {
+          const fileObj = state.selectedFiles[i];
+          const file = fileObj.file;
+          const fileId = 'file-' + Date.now() + '-' + i;
+          const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+          const meta = { type: 'file-meta', fileId, name: file.name, size: file.size, mimeType: file.type, totalChunks };
+          // Send meta via control
+          ctrlConns.forEach(c => c.send(meta));
+
+          // Read and send chunks via binary channel
+          let offset = 0;
+          let chunkIndex = 0;
+          const reader = file.stream().getReader();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              // value is Uint8Array
+              for (let start = 0; start < value.length; start += CHUNK_SIZE) {
+                const slice = value.slice(start, start + CHUNK_SIZE);
+                // Send directly as ArrayBuffer
+                fileConns.forEach(conn => {
+                  if (conn.open) conn.send(slice.buffer.slice(slice.byteOffset, slice.byteOffset + slice.byteLength));
+                });
+                chunkIndex++;
+                const progress = Math.round((chunkIndex / totalChunks) * 100);
+                $('#sendProgress').style.width = progress + '%';
+                $('#sendProgressWrapper').style.display = 'block';
+                $('#sendProgressText').textContent = `Sending ${file.name}: ${progress}%`;
+                // small async yield to not block UI
+                if (chunkIndex % 10 === 0) await new Promise(r => setTimeout(r, 0));
+              }
+            }
+          } catch (e) {
+            console.error('Send error', e);
+            ctrlConns.forEach(c => c.send({ type: 'file-cancel', fileId }));
+          }
+          // Send file-end
+          ctrlConns.forEach(c => c.send({ type: 'file-end', fileId }));
+          // Add to own received
+          state.receivedItems.push({ id: fileId, type:'file', name: file.name, size: file.size, mimeType: file.type, blob: file, timestamp: Date.now() });
+        }
+
+        state.selectedFiles = [];
+        $('#fileInput').value = '';
+        renderFileList();
+        renderReceived();
+        state.isSending = false;
+        $('#sendProgressWrapper').style.display = 'none';
+        $('#sendProgressText').textContent = '';
+        updateSendUI();
+        toast('All files sent', 'success');
+      }
+
+      // ---- Receive functions ----
+      function receiveText(data) {
+        state.receivedItems.push({ id: 'txt-'+Date.now(), type:'text', text: data.content, name:'Message', size: new Blob([data.content]).size, timestamp: Date.now() });
+        renderReceived();
+        toast('New text message', 'info');
+      }
+
+      function receiveFileMeta(data, remoteId) {
+        state.pendingChunks[data.fileId] = {
+          name: data.name,
+          size: data.size,
+          mimeType: data.mimeType,
+          totalChunks: data.totalChunks,
+          chunks: [],
+          received: 0,
+          remoteId,
+        };
+        $('#receiveProgress').style.width = '0%';
+        $('#receiveProgressWrapper').style.display = 'block';
+        $('#receiveProgressText').textContent = `Receiving ${data.name} (0%)`;
+      }
+
+      function receiveFileChunk(arrayBuffer, remoteId) {
+        // We need to know which file this chunk belongs to. Since we only have one active reception per peer,
+        // we can assume the pending chunk belongs to that peer.
+        const pending = Object.values(state.pendingChunks).find(p => p.remoteId === remoteId);
+        if (!pending) return;
+        pending.chunks.push(new Uint8Array(arrayBuffer));
+        pending.received++;
+        const progress = Math.round((pending.received / pending.totalChunks) * 100);
+        $('#receiveProgress').style.width = progress + '%';
+        $('#receiveProgressText').textContent = `Receiving ${pending.name} (${progress}%)`;
+      }
+
+      function receiveFileEnd(data, remoteId) {
+        const pending = state.pendingChunks[data.fileId];
+        if (!pending) return;
+        const blob = new Blob(pending.chunks, { type: pending.mimeType });
+        state.receivedItems.push({
+          id: data.fileId,
+          type: 'file',
+          name: pending.name,
+          size: pending.size,
+          mimeType: pending.mimeType,
+          blob,
+          timestamp: Date.now(),
+        });
+        delete state.pendingChunks[data.fileId];
+        renderReceived();
+        $('#receiveProgressWrapper').style.display = 'none';
+        $('#receiveProgressText').textContent = '';
+        toast(`File received: ${pending.name}`, 'success');
+      }
+
+      function renderReceived() {
+        const container = $('#receivedList');
+        if (state.receivedItems.length === 0) {
+          container.innerHTML = '<p style="text-align:center;color:var(--on-surface-light);">Nothing yet</p>';
+          $('#batchActions').style.display = 'none';
+          return;
+        }
+        container.innerHTML = state.receivedItems.map((item, idx) => {
+          const isFile = item.type === 'file';
+          return `
+            <div class="received-item">
+              <input type="checkbox" class="item-checkbox" data-id="${item.id}" onchange="updateBatchUI()">
+              <span class="material-icons-round">${isFile ? 'insert_drive_file' : 'text_snippet'}</span>
+              <div class="item-info">
+                <strong>${item.name}</strong><br>
+                <small>${formatSize(item.size)} · ${new Date(item.timestamp).toLocaleTimeString()}</small>
+                ${!isFile && item.text ? `<div style="background:#f1f3f4;padding:6px;border-radius:8px;margin-top:4px;max-height:60px;overflow:auto;font-family:monospace;font-size:0.8rem;">${item.text}</div>` : ''}
+              </div>
+              <div class="actions">
+                ${isFile ? `<button class="btn btn-primary btn-sm" onclick="downloadSingle('${item.id}')">Download</button>` : `<button class="btn btn-sm" onclick="copyText('${item.id}')">Copy</button>`}
+              </div>
+            </div>`;
+        }).join('');
+        updateBatchUI();
+      }
+
+      window.updateBatchUI = () => {
+        const checked = $$('.item-checkbox:checked');
+        $('#selectedCount').textContent = checked.length + ' selected';
+        const hasFile = Array.from(checked).some(cb => {
+          const item = state.receivedItems.find(i => i.id === cb.dataset.id);
+          return item && item.type === 'file';
+        });
+        $('#btnDownloadSelected').disabled = !hasFile;
+        if (state.receivedItems.length > 0) $('#batchActions').style.display = 'flex';
+        else $('#batchActions').style.display = 'none';
+      };
+
+      window.toggleSelectAll = () => {
+        const cbs = $$('.item-checkbox');
+        const allChecked = Array.from(cbs).every(cb => cb.checked);
+        cbs.forEach(cb => cb.checked = !allChecked);
+        updateBatchUI();
+      };
+
+      window.downloadSingle = (id) => {
+        const item = state.receivedItems.find(i => i.id === id);
+        if (!item || !item.blob) return;
+        const url = URL.createObjectURL(item.blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = item.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      window.copyText = (id) => {
+        const item = state.receivedItems.find(i => i.id === id);
+        if (!item || !item.text) return;
+        navigator.clipboard.writeText(item.text).then(() => toast('Copied!', 'success'));
+      };
+
+      function getSelectedItems() {
+        const ids = Array.from($$('.item-checkbox:checked')).map(cb => cb.dataset.id);
+        return state.receivedItems.filter(i => ids.includes(i.id));
+      }
+
+      window.downloadSelected = () => {
+        const items = getSelectedItems().filter(i => i.type === 'file');
+        if (items.length === 0) return toast('No files selected', 'error');
+        if (items.length === 1) return downloadSingle(items[0].id);
+        downloadAsZip(items);
+      };
+
+      window.downloadAllAsZip = () => {
+        const items = state.receivedItems.filter(i => i.type === 'file');
+        if (items.length === 0) return toast('No files', 'error');
+        if (items.length === 1) return downloadSingle(items[0].id);
+        downloadAsZip(items);
+      };
+
+      async function downloadAsZip(items) {
+        if (typeof JSZip === 'undefined') {
+          toast('ZIP library missing', 'error');
+          return;
+        }
+        const zip = new JSZip();
+        items.forEach(item => zip.file(item.name, item.blob));
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'dropshare-files.zip';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      // ---- QR Scanner ----
+      window.openQRScanner = () => {
+        $('#qrModal').style.display = 'flex';
+        if (!window.Html5Qrcode) {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+          script.onload = startScanner;
+          document.head.appendChild(script);
+        } else startScanner();
+      };
+
+      function startScanner() {
+        const el = document.getElementById('qrScanner');
+        el.innerHTML = '';
+        state.qrScanner = new Html5Qrcode('qrScanner');
+        state.qrScanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: 200 },
+          (decoded) => {
+            $('#remotePeerId').value = decoded;
+            toast('Scanned! Click Connect', 'success');
+            closeQRScanner();
+            setTimeout(() => connectToPeer(), 500);
+          },
+          () => {}
+        ).catch(() => toast('Camera error', 'error'));
+      }
+
+      window.closeQRScanner = () => {
+        if (state.qrScanner) {
+          state.qrScanner.stop().catch(() => {});
+          state.qrScanner = null;
+        }
+        $('#qrModal').style.display = 'none';
+      };
+
+      // ---- Utility ----
+      window.copyPeerId = () => {
+        navigator.clipboard.writeText(state.peerId).then(() => toast('ID copied!', 'success'));
+      };
+      window.copyShareLink = () => {
+        const url = new URL(location.href);
+        url.searchParams.set('connect', state.peerId);
+        navigator.clipboard.writeText(url.toString()).then(() => toast('Link copied!', 'success'));
+      };
+
+      // ---- Events ----
+      $('#fileInput').addEventListener('change', e => {
+        for (let f of e.target.files) state.selectedFiles.push({ id: 'sf-'+Date.now()+Math.random(), file: f });
+        renderFileList();
+        updateSendUI();
+      });
+      const dz = $('#dropZone');
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+      dz.addEventListener('drop', e => {
+        e.preventDefault();
+        dz.classList.remove('drag-over');
+        for (let f of e.dataTransfer.files) state.selectedFiles.push({ id: 'sf-'+Date.now()+Math.random(), file: f });
+        renderFileList();
+        updateSendUI();
+      });
+      $('#textToSend').addEventListener('input', updateSendUI);
+      $('#remotePeerId').addEventListener('keydown', e => { if (e.key === 'Enter') connectToPeer(); });
+      window.addEventListener('beforeunload', () => {
+        Object.values(state.controlConns).forEach(c => c.close());
+        Object.values(state.fileConns).forEach(c => c.close());
+      });
+
+      // PWA registration
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js');
+      }
+
+      // Init
+      initPeer();
+      updateSendUI();
+      renderReceived();
+      window.connectToPeer = connectToPeer;
+      window.sendText = sendText;
+      window.sendAllFiles = sendAllFiles;
+      window.disconnectAll = disconnectAll;
+    })();
+  </script>
 </body>
-</html>
+          </html>
