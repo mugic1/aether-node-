@@ -1,0 +1,22 @@
+{
+  "name": "Drop & Share",
+  "short_name": "DropShare",
+  "description": "P2P unlimited file and text sharing application.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F3EDF7",
+  "theme_color": "#F3EDF7",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzY3NTBBNCI+PHBhdGggZD0iTTEyIDJMMCAxMGgxMHYxMmgyVjEwaDEwTDEyIDJ6Ii8+PC9zdmc+",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzY3NTBBNCI+PHBhdGggZD0iTTEyIDJMMCAxMGgxMHYxMmgyVjEwaDEwTDEyIDJ6Ii8+PC9zdmc+",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
