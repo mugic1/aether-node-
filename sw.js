@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aether-v4-cache';
+const CACHE_NAME = 'aether-v5-cache';
 const ASSETS = [
   'index.html',
   'manifest.json',
@@ -10,7 +10,7 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS);
-    })
+    }).then(() => self.skipWaiting())
   );
 });
 
@@ -24,7 +24,7 @@ self.addEventListener('activate', (e) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
@@ -35,4 +35,3 @@ self.addEventListener('fetch', (e) => {
     })
   );
 });
-
