@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aether P2P Node</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.6);
+            --glass-blur: blur(20px);
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --bg-gradient: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%);
+            --panel-border: rgba(15, 23, 42, 0.08);
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: var(--bg-gradient); height: 100vh; height: 100dvh; display: flex; justify-content: center; align-items: center; color: var(--text-dark); padding: 0; overflow: hidden; }
+        
+        /* Main Layout Engine - Fluid Grid Split Screen */
+        .app-window { 
+            width: 100vw; 
+            height: 100vh; 
+            height: 100dvh;
+            background: rgba(255, 255, 255, 0.3);
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Sidebar System */
+        .sidebar { 
+            display: flex; 
+            flex-direction: column; 
+            background: rgba(255, 255, 255, 0.7); 
+            border-right: 1px solid var(--panel-border);
+            height: 100%;
+            overflow: hidden;
+            z-index: 10;
+        }
+        .sidebar-header { padding: 16px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--panel-border); background: rgba(255,255,255,0.4); }
+        
+        /* Layout Fix: ID Card Wrapping */
+        .my-id-card { 
+            font-size: 12px; 
+            font-weight: 600; 
+            background: white; 
+            padding: 12px; 
+            border-radius: 12px; 
+            border: 1px solid var(--panel-border); 
+            text-align: center; 
+            cursor: pointer; 
+            color: var(--accent); 
+            white-space: nowrap;
+            overflow: hidden; 
+            text-overflow: ellipsis;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        
+        .backup-zone { display: flex; gap: 8px; }
+        .btn-utility { flex: 1; padding: 10px; font-size: 11px; font-weight: 700; border-radius: 8px; border: 1px solid var(--panel-border); background: white; color: var(--text-dark); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .btn-utility:hover { background: #f8fafc; }
+        
+        .add-box { display: flex; flex-direction: column; gap: 6px; }
+        .add-box input { padding: 10px; border: 1px solid var(--panel-border); border-radius: 10px; background: white; outline: none; font-size: 13px; width: 100%; }
+        .add-box button { background: var(--accent); color: white; border: none; padding: 11px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 13px; transition: background 0.2s; }
+        .add-box button:hover { background: var(--accent-hover); }
+        
+        .chat-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+        .contact-card { padding: 14px; background: transparent; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+        .contact-card:hover { background: rgba(255, 255, 255, 0.4); }
+        .contact-card.active { background: white; border-color: var(--panel-border); box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .contact-info { display: flex; flex-direction: column; gap: 3px; overflow: hidden; padding-right: 8px; }
+        .contact-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .contact-id-sub { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); flex-shrink: 0; }
+        .status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        
+        /* Main Viewport Workspace */
+        .viewport-main { 
+            display: flex; 
+            flex-direction: column; 
+            background: rgba(255, 255, 255, 0.15); 
+            position: relative; 
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .view-header { 
+            height: 65px; 
+            padding: 0 24px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid var(--panel-border); 
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: rgba(239, 68, 68, 0.08);
+        }
+        
+        .chat-scroller { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 14px; background: rgba(255,255,255,0.1); }
+        
+        .nudge-btn { background: rgba(239, 68, 68, 0.08); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.15); padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; display: none; }
+        
+        /* Chat Bubbles Engine */
+        .bubble { max-width: 70%; padding: 12px 16px; border-radius: 16px; font-size: 14.5px; line-height: 1.5; word-wrap: break-word; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .b-me { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+        .b-other { align-self: flex-start; background: white; color: var(--text-dark); border-bottom-left-radius: 4px; border: 1px solid var(--panel-border); }
+        .b-pending { opacity: 0.65; border: 1px dashed rgba(255,255,255,0.5); background: #4f46e5 !important; }
+        .b-time { font-size: 10px; opacity: 0.6; display: block; text-align: right; margin-top: 6px; }
+        .b-other .b-time { color: var(--text-muted); }
+        
+        .stream-card { background: rgba(0, 0, 0, 0.05); padding: 10px; border-radius: 10px; margin-top: 4px; display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+        .gauge-track { background: rgba(0,0,0,0.1); width: 100%; height: 5px; border-radius: 10px; overflow: hidden; }
+        .gauge-fill { background: var(--accent); width: 0%; height: 100%; }
+        .stream-link { color: inherit; text-decoration: underline; font-weight: 500; font-size: 13px; display: block; word-break: break-all; }
+        
+        /* Control Send Box */
+        .control-panel { 
+            height: 75px; 
+            padding: 14px 24px; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            border-top: 1px solid var(--panel-border); 
+            background: rgba(255, 255, 255, 0.8); 
+            backdrop-filter: var(--glass-blur);
+        }
+        .clip-action { background: white; border: 1px solid var(--panel-border); border-radius: 12px; width: 44px; height: 44px; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .type-area { flex: 1; padding: 12px 16px; border: 1px solid var(--panel-border); border-radius: 12px; outline: none; background: white; font-size: 14.5px; height: 44px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02); }
+        .emit-action { background: var(--accent); color: white; border: none; border-radius: 12px; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3); }
+        
+        #fileInput, #importFile { display: none; }
+        .blank-slate { position: absolute; top:0; left:0; width:100%; height:100%; background: #f8fafc; display:flex; justify-content:center; align-items:center; color: var(--text-muted); font-size:15px; z-index: 5; text-align: center; padding: 20px; }
+        .toast-popup { position: fixed; bottom: 95px; left: 50%; transform: translateX(-50%); background: var(--text-dark); color: white; padding: 12px 24px; border-radius: 12px; display: none; font-size: 13px; z-index: 5000; box-shadow: 0 10px 30px rgba(0,0,0,0.15); font-weight: 500; }
+        .back-nav { display: none; margin-right: 14px; cursor: pointer; font-size: 20px; font-weight: bold; }
+        
+        /* 📱 RESPONSIVE CODES ENGINE - TABLETS & PHONES PERFECTED */
+        @media (max-width: 900px) {
+            .app-window { grid-template-columns: 300px 1fr; }
+        }
+        
+        @media (max-width: 650px) {
+            .app-window { grid-template-columns: 100% 0%; }
+            .sidebar { width: 100vw; }
+            .viewport-main { 
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100%;
+                z-index: 100;
+                transform: translateX(100vw);
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .viewport-main.mobile-on { transform: translateX(0); }
+            .back-nav { display: inline-block; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-window">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="my-id-card" id="myIdDisplay" onclick="triggerCopy(myId, 'Your Address Copied!')">Initializing Core Node...</div>
+            
+            <div class="backup-zone">
+                <button class="btn-utility" onclick="exportAetherDatabase()">📤 Export Data</button>
+                <button class="btn-utility" onclick="document.getElementById('importFile').click()">📥 Import Data</button>
+                <input type="file" id="importFile" accept=".json" onchange="importAetherDatabase(event)">
+            </div>
+
+            <div class="add-box">
+                <input type="text" id="addFriendName" placeholder="Contact Name (e.g., Alex)">
+                <input type="text" id="addFriendId" placeholder="Paste Node Peer ID">
+                <button onclick="commitNewContact()">Save Contact</button>
+            </div>
+        </div>
+        <div class="chat-list" id="contactContainer"></div>
+    </div>
+
+    <div class="viewport-main">
+        <div class="blank-slate" id="welcomeSlate">Select or save a node contact card from sidebar matrix array</div>
+        <div class="view-header">
+            <div style="display: flex; align-items: center; overflow: hidden; width: 65%;">
+                <span class="back-nav" onclick="dismissMobileView()">⬅️</span>
+                <span id="activeNodeHeader" style="font-weight: 700; font-size: 15px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">System Ready</span>
+            </div>
+            <button class="nudge-btn" id="nudgeActionBtn" onclick="sendSystemNotificationRequest()">🔔 Force Connect</button>
+        </div>
+        <div class="chat-scroller" id="scrollerDeck"></div>
+        <div class="control-panel">
+            <button class="clip-action" onclick="document.getElementById('fileInput').click()">⚡</button>
+            <input type="file" id="fileInput" multiple onchange="prepareParallelStreams(event)">
+            <input type="text" id="textInput" class="type-area" placeholder="Write secure p2p message..." onkeydown="if(event.key==='Enter') dispatchTextPayload()">
+            <button class="emit-action" onclick="dispatchTextPayload()">➔</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-popup" id="systemToast">Done</div>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(() => console.log("PWA Loaded"));
+    }
+
+    const CHUNK_MAX = 64 * 1024;
+    let peer;
+    let myId = localStorage.getItem('ath_node_id') || 'ath_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('ath_node_id', myId);
+
+    let activeNodeId = null;
+    let connectionsPool = {}; 
+    let contactsBook = JSON.parse(localStorage.getItem('ath_book')) || {};
+    let archiveStore = JSON.parse(localStorage.getItem('ath_archive')) || {};
+    let outboxQueue = JSON.parse(localStorage.getItem('ath_outbox')) || {}; 
+    let activeAssemblers = {};
+
+    if (Notification.permission !== "granted") Notification.requestPermission();
+
+    function initializeNodeEngine() {
+        if(peer) { try { peer.destroy(); } catch(e){} }
+        
+        peer = new Peer(myId, { debug: 1 });
+
+        peer.on('open', (id) => {
+            document.getElementById('myIdDisplay').innerText = "Node ID: " + id + " (Tap)";
+            refreshContactMatrix();
+            fireAutoHandshakes();
+        });
+
+        peer.on('connection', (incomingConn) => bindNodeEvents(incomingConn));
+        peer.on('error', (err) => {
+            console.error("PeerJS Handshake Flag Error:", err);
+            showToast("Connection handshake latency/timeout.");
+        });
+    }
+
+    function fireAutoHandshakes() {
+        Object.keys(contactsBook).forEach(id => { if(!connectionsPool[id]) establishNodeLink(id); });
+    }
+
+    function commitNewContact() {
+        const name = document.getElementById('addFriendName').value.trim();
+        const id = document.getElementById('addFriendId').value.trim();
+        if(!id || !name || id === myId) return alert("Verify Peer Parameter Rules!");
+        contactsBook[id] = { id, name };
+        localStorage.setItem('ath_book', JSON.stringify(contactsBook));
+        refreshContactMatrix();
+        establishNodeLink(id);
+        document.getElementById('addFriendName').value = ''; document.getElementById('addFriendId').value = '';
+    }
+
+    function establishNodeLink(targetId) {
+        if(connectionsPool[targetId] || peer.destroyed) return;
+        let coreConn = peer.connect(targetId, { reliable: true });
+        bindNodeEvents(coreConn);
+    }
+
+    function bindNodeEvents(conn) {
+        const peerId = conn.peer;
+        connectionsPool[peerId] = conn;
+        
+        if(!contactsBook[peerId]) {
+            contactsBook[peerId] = { id: peerId, name: "Node (" + peerId.substr(4,4) + ")" };
+            localStorage.setItem('ath_book', JSON.stringify(contactsBook));
+            refreshContactMatrix();
+        }
+
+        conn.on('open', () => {
+            toggleNodeIndicator(peerId, true);
+            if(peerId === activeNodeId) handleNudgeButtonVisibility(true);
+            flushOutboxQueue(peerId); 
+        });
+        
+        conn.on('data', (payload) => processIncomingPayload(peerId, payload));
+        
+        conn.on('close', () => {
+            toggleNodeIndicator(peerId, false);
+            if(peerId === activeNodeId) handleNudgeButtonVisibility(false);
+            delete connectionsPool[peerId];
+            setTimeout(() => { if(contactsBook[peerId]) establishNodeLink(peerId); }, 5000);
+        });
+    }
+
+    function toggleNodeIndicator(id, status) {
+        const nodeDot = document.getElementById(`dot-${id}`);
+        if(nodeDot) status ? nodeDot.classList.add('online') : nodeDot.classList.remove('online');
+    }
+
+    function handleNudgeButtonVisibility(isOnline) {
+        document.getElementById('nudgeActionBtn').style.display = isOnline ? 'none' : 'block';
+    }
+
+    function sendSystemNotificationRequest() {
+        if(!activeNodeId) return;
+        showToast("Trying background handshake tunnel reset...");
+        establishNodeLink(activeNodeId);
+    }
+
+    function flushOutboxQueue(peerId) {
+        if (!outboxQueue[peerId] || outboxQueue[peerId].length === 0) return;
+        const activeChannel = connectionsPool[peerId];
+        if (activeChannel && activeChannel.open) {
+            outboxQueue[peerId].forEach((msgData) => {
+                activeChannel.send({ type: 'txt', data: msgData.data });
+            });
+            outboxQueue[peerId] = []; 
+            localStorage.setItem('ath_outbox', JSON.stringify(outboxQueue));
+            if(peerId === activeNodeId) renderNodeArchive(); 
+        }
+    }
+
+    function dispatchTextPayload() {
+        const input = document.getElementById('textInput');
+        const payload = input.value.trim();
+        if(!payload || !activeNodeId) return;
+
+        const activeChannel = connectionsPool[activeNodeId];
+        
+        if(activeChannel && activeChannel.open) {
+            activeChannel.send({ type: 'txt', data: payload });
+            commitAndLogBubble(activeNodeId, payload, 'b_me', false);
+        } else {
+            if(!outboxQueue[activeNodeId]) outboxQueue[activeNodeId] = [];
+            outboxQueue[activeNodeId].push({ data: payload });
+            localStorage.setItem('ath_outbox', JSON.stringify(outboxQueue));
+            commitAndLogBubble(activeNodeId, payload, 'b_me', true); 
+            showToast("Saved to Outbox Cache Strategy!");
+        }
+        input.value = '';
+    }
+
+    function processIncomingPayload(originNodeId, payload) {
+        if(payload.type === 'txt') {
+            commitAndLogBubble(originNodeId, payload.data, 'b_other', false);
+            if (document.hidden) {
+                new Notification(`Aether P2P`, { body: `${contactsBook[originNodeId].name}: ${payload.data}` });
+            }
+        }
+        else if(payload.type === 'meta-start') {
+            const trackId = (originNodeId === activeNodeId) ? renderStreamTrack(payload.name, 'b_other') : null;
+            activeAssemblers[payload.allocationId] = { name: payload.name, mime: payload.mime, blocksArray: new Array(payload.blocksLength), blocksLength: payload.blocksLength, receivedCounter: 0, trackId: trackId };
+        }
+        else if(payload.type === 'block-data') {
+            const trackerObj = activeAssemblers[payload.allocationId];
+            if(trackerObj) {
+                trackerObj.blocksArray[payload.index] = payload.binary;
+                trackerObj.receivedCounter++;
+                const progressVal = Math.round((trackerObj.receivedCounter / trackerObj.blocksLength) * 100);
+                if(trackerObj.trackId) { const fillBar = document.getElementById(`gf-${trackerObj.trackId}`); if(fillBar) fillBar.style.width = progressVal + '%'; }
+            }
+        }
+        else if(payload.type === 'meta-end') {
+            const trackerObj = activeAssemblers[payload.allocationId];
+            if(trackerObj) {
+                const compileBlob = new Blob(trackerObj.blocksArray, { type: trackerObj.mime });
+                const structuralUrl = URL.createObjectURL(compileBlob);
+                if(trackerObj.trackId) wrapStreamTrack(trackerObj.trackId, trackerObj.name, structuralUrl);
+                logPayloadToLocalStore(originNodeId, `[File Component] ${trackerObj.name}`, 'b_other');
+                delete activeAssemblers[payload.allocationId];
+            }
+        }
+    }
+
+    function refreshContactMatrix() {
+        const deck = document.getElementById('contactContainer'); deck.innerHTML = '';
+        Object.keys(contactsBook).forEach(id => {
+            const card = document.createElement('div');
+            card.className = `contact-card ${activeNodeId === id ? 'active' : ''}`;
+            card.onclick = () => mountActiveNode(id);
+            card.innerHTML = `<div class="contact-info"><span class="contact-name">${contactsBook[id].name}</span><span class="contact-id-sub">${id}</span></div><span class="status-dot" id="dot-${id}"></span>`;
+            deck.appendChild(card);
+            if(connectionsPool[id] && connectionsPool[id].open) toggleNodeIndicator(id, true);
+        });
+    }
+
+    function mountActiveNode(id) {
+        activeNodeId = id;
+        document.getElementById('welcomeSlate').style.display = 'none';
+        document.getElementById('activeNodeHeader').innerText = contactsBook[id].name + " (" + id + ")";
+        document.querySelector('.viewport-main').classList.add('mobile-on');
+        handleNudgeButtonVisibility(!!(connectionsPool[id] && connectionsPool[id].open));
+        refreshContactMatrix();
+        renderNodeArchive();
+    }
+
+    function dismissMobileView() { document.querySelector('.viewport-main').classList.remove('mobile-on'); activeNodeId = null; refreshContactMatrix(); }
+
+    function prepareParallelStreams(event) {
+        const targetFiles = event.target.files;
+        if(!activeNodeId || !connectionsPool[activeNodeId] || !connectionsPool[activeNodeId].open) return alert("Remote peer connection node offline!");
+        for(let idx = 0; idx < targetFiles.length; idx++) { spawnIndependentFileStreamPipeline(targetFiles[idx], activeNodeId); }
+        event.target.value = '';
+    }
+
+    function spawnIndependentFileStreamPipeline(file, receiverNodeId) {
+        const isolatedDataPipe = peer.connect(receiverNodeId, { reliable: true, label: 'stream_' + file.name });
+        const allocationId = 'stream_' + Math.random().toString(36).substr(2, 9);
+        const gaugeId = renderStreamTrack(file.name, 'b_me');
+
+        isolatedDataPipe.on('open', () => {
+            let readingOffset = 0; const totalRequiredBlocks = Math.ceil(file.size / CHUNK_MAX); let currentBlockIndex = 0;
+            isolatedDataPipe.send({ type: 'meta-start', allocationId: allocationId, name: file.name, mime: file.type, blocksLength: totalRequiredBlocks });
+
+            function executeNextBlockPush() {
+                const sliceBound = file.slice(readingOffset, readingOffset + CHUNK_MAX);
+                const fileReaderInstance = new FileReader();
+                fileReaderInstance.onload = function(evt) {
+                    if(!isolatedDataPipe.open) return;
+                    isolatedDataPipe.send({ type: 'block-data', allocationId: allocationId, index: currentBlockIndex, binary: evt.target.result });
+                    readingOffset += CHUNK_MAX; currentBlockIndex++;
+                    const executionPercent = Math.min(100, Math.round((readingOffset / file.size) * 100));
+                    document.getElementById(`gf-${gaugeId}`).style.width = executionPercent + '%';
+                    if(readingOffset < file.size) {
+                        if (isolatedDataPipe.dataChannel.bufferedAmount > 2 * 1024 * 1024) setTimeout(executeNextBlockPush, 25);
+                        else setTimeout(executeNextBlockPush, 1);
+                    } else {
+                        isolatedDataPipe.send({ type: 'meta-end', allocationId: allocationId });
+                        wrapStreamTrack(gaugeId, file.name, URL.createObjectURL(file));
+                        setTimeout(() => isolatedDataPipe.close(), 1000);
+                    }
+                };
+                fileReaderInstance.readAsArrayBuffer(sliceBound);
+            }
+            executeNextBlockPush();
+        });
+    }
+
+    function renderStreamTrack(fileName, customClass) {
+        const container = document.getElementById('scrollerDeck'); const tokenKey = 'tk_' + Math.random().toString(36).substr(2, 9);
+        const cardFrame = document.createElement('div'); cardFrame.className = `bubble ${customClass}`; cardFrame.id = tokenKey;
+        cardFrame.innerHTML = `<div class="stream-card"><div class="stream-link" id="meta-${tokenKey}">Syncing Stream: ${fileName}</div><div class="gauge-track"><div class="gauge-fill" id="gf-${tokenKey}"></div></div></div><span class="b-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>`;
+        container.appendChild(cardFrame); container.scrollTop = container.scrollHeight; return tokenKey;
+    }
+
+    function wrapStreamTrack(targetToken, filename, finalUrl) {
+        const linkBlock = document.getElementById(`meta-${targetToken}`); if(linkBlock) linkBlock.innerHTML = `<a href="${finalUrl}" download="${filename}" class="stream-link">📂 Download File: ${filename}</a>`;
+        const trackerBar = document.getElementById(`gf-${targetToken}`); if(trackerBar) trackerBar.parentElement.style.display = 'none';
+    }
+
+    function commitAndLogBubble(targetNodeId, textData, contextClass, isPending) {
+        if(!isPending) logPayloadToLocalStore(targetNodeId, textData, contextClass);
+        if(targetNodeId === activeNodeId) {
+            const tray = document.getElementById('scrollerDeck');
+            const bubbleNode = document.createElement('div');
+            bubbleNode.className = `bubble ${contextClass} ${isPending ? 'b-pending' : ''}`;
+            bubbleNode.innerText = textData;
+            const timeTag = document.createElement('span'); timeTag.className = 'b-time';
+            timeTag.innerText = (isPending ? '⏳ Outbox Queue ' : '') + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            bubbleNode.appendChild(timeTag);
+            bindBubbleLongPress(bubbleNode, textData); tray.appendChild(bubbleNode); tray.scrollTop = tray.scrollHeight;
+        }
+    }
+
+    function logPayloadToLocalStore(nodeId, dataStream, senderContext) {
+        if(!archiveStore[nodeId]) archiveStore[nodeId] = [];
+        archiveStore[nodeId].push({ data: dataStream, context: senderContext, stamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
+        if(archiveStore[nodeId].length > 100) archiveStore[nodeId].shift();
+        localStorage.setItem('ath_archive', JSON.stringify(archiveStore));
+    }
+
+    function renderNodeArchive() {
+        const tray = document.getElementById('scrollerDeck'); tray.innerHTML = '';
+        const indexHistory = archiveStore[activeNodeId] || [];
+        indexHistory.forEach(record => {
+            const bubbleNode = document.createElement('div'); bubbleNode.className = `bubble ${record.context}`; bubbleNode.innerText = record.data;
+            const timeTag = document.createElement('span'); timeTag.className = 'b-time'; timeTag.innerText = record.stamp;
+            bubbleNode.appendChild(timeTag); bindBubbleLongPress(bubbleNode, record.data); tray.appendChild(bubbleNode);
+        });
+        const pendingQueue = outboxQueue[activeNodeId] || [];
+        pendingQueue.forEach(item => {
+            const bubbleNode = document.createElement('div'); bubbleNode.className = `bubble b_me b-pending`; bubbleNode.innerText = item.data;
+            const timeTag = document.createElement('span'); timeTag.className = 'b-time'; timeTag.innerText = '⏳ Outbox Buffer';
+            bubbleNode.appendChild(timeTag); tray.appendChild(bubbleNode);
+        });
+        tray.scrollTop = tray.scrollHeight;
+    }
+
+    function bindBubbleLongPress(targetElement, rawText) {
+        let timer;
+        targetElement.addEventListener('mousedown', () => { timer = setTimeout(() => triggerCopy(rawText, "Data copied!"), 700); });
+        targetElement.addEventListener('touchstart', () => { timer = setTimeout(() => triggerCopy(rawText, "Data copied!"), 700); });
+        targetElement.addEventListener('mouseup', () => clearTimeout(timer)); targetElement.addEventListener('touchend', () => clearTimeout(timer));
+    }
+
+    function triggerCopy(textString, outputAlert) { if(!textString) return; navigator.clipboard.writeText(textString).then(() => showToast(outputAlert)); }
+    function showToast(infoText) { const box = document.getElementById('systemToast'); box.innerText = infoText; box.style.display = 'block'; setTimeout(() => box.style.display = 'none', 1800); }
+
+    function exportAetherDatabase() {
+        const backupDataObj = {
+            version: "3.0.0",
+            timestamp: Date.now(),
+            nodeId: localStorage.getItem('ath_node_id'),
+            contacts: localStorage.getItem('ath_book'),
+            chats: localStorage.getItem('ath_archive'),
+            outbox: localStorage.getItem('ath_outbox')
+        };
+        const stringifiedBlob = new Blob([JSON.stringify(backupDataObj, null, 2)], { type: "application/json" });
+        const temporaryLink = document.createElement('a');
+        temporaryLink.href = URL.createObjectURL(stringifiedBlob);
+        temporaryLink.download = `Aether_Backup_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(temporaryLink); temporaryLink.click(); document.body.removeChild(temporaryLink);
+        showToast("Database Exported Successfully!");
+    }
+
+    function importAetherDatabase(event) {
+        const contextFile = event.target.files[0]; if (!contextFile) return;
+        const asyncReader = new FileReader();
+        asyncReader.onload = function(e) {
+            try {
+                const parsedObject = JSON.parse(e.target.result);
+                if (parsedObject.version !== "3.0.0" || !parsedObject.nodeId) throw new Error("Invalid signature format.");
+                
+                localStorage.setItem('ath_node_id', parsedObject.nodeId);
+                if(parsedObject.contacts) localStorage.setItem('ath_book', parsedObject.contacts);
+                if(parsedObject.chats) localStorage.setItem('ath_archive', parsedObject.chats);
+                if(parsedObject.outbox) localStorage.setItem('ath_outbox', parsedObject.outbox);
+
+                myId = parsedObject.nodeId;
+                contactsBook = JSON.parse(localStorage.getItem('ath_book')) || {};
+                archiveStore = JSON.parse(localStorage.getItem('ath_archive')) || {};
+                outboxQueue = JSON.parse(localStorage.getItem('ath_outbox')) || {};
+                
+                activeNodeId = null;
+                document.getElementById('welcomeSlate').style.display = 'flex';
+                connectionsPool = {};
+                
+                showToast("Database Restored. Initializing sync cluster...");
+                initializeNodeEngine();
+            } catch (err) {
+                alert("Core System: Corrupted or Unsupported `.json` configuration file structure.");
+            }
+        };
+        asyncReader.readAsText(contextFile); event.target.value = '';
+    }
+
+    initializeNodeEngine();
+</script>
+</body>
+</html>
