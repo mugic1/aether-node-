@@ -87,6 +87,7 @@
             position: relative; 
             height: 100%;
             overflow: hidden;
+            width: 100%;
         }
         
         .view-header { 
@@ -104,13 +105,14 @@
         
         .nudge-btn { background: rgba(239, 68, 68, 0.08); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.15); padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; display: none; }
         
-        .bubble { max-width: 70%; padding: 12px 16px; border-radius: 16px; font-size: 14.5px; line-height: 1.5; word-wrap: break-word; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-        .b-me { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 4px; }
-        .b-other { align-self: flex-start; background: white; color: var(--text-dark); border-bottom-left-radius: 4px; border: 1px solid var(--panel-border); }
+        /* Chat Bubbles Engine Fixed for All Devices */
+        .bubble { max-width: 70%; width: fit-content; padding: 12px 16px; font-size: 14.5px; line-height: 1.5; word-wrap: break-word; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .b-me { align-self: flex-end; background: var(--accent); color: white; border-radius: 16px 16px 4px 16px; margin-left: auto; }
+        .b-other { align-self: flex-start; background: white; color: var(--text-dark); border-radius: 16px 16px 16px 4px; border: 1px solid var(--panel-border); margin-right: auto; }
         .b-pending { opacity: 0.65; border: 1px dashed rgba(255,255,255,0.5); background: #4f46e5 !important; }
-        .b-time { font-size: 10px; opacity: 0.6; display: block; text-align: right; margin-top: 6px; }
-        .b-me .b-time { color: #e0e7ff; }
-        .b-other .b-time { color: var(--text-muted); }
+        .b-time { font-size: 10px; opacity: 0.6; display: block; margin-top: 6px; }
+        .b-me .b-time { color: #e0e7ff; text-align: right; }
+        .b-other .b-time { color: var(--text-muted); text-align: left; }
         
         .stream-card { background: rgba(0, 0, 0, 0.05); padding: 10px; border-radius: 10px; margin-top: 4px; display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
         .gauge-track { background: rgba(0,0,0,0.1); width: 100%; height: 5px; border-radius: 10px; overflow: hidden; }
@@ -126,25 +128,35 @@
             border-top: 1px solid var(--panel-border); 
             background: #ffffff; 
         }
-        .clip-action { background: white; border: 1px solid var(--panel-border); border-radius: 12px; width: 44px; height: 44px; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .clip-action { background: white; border: 1px solid var(--panel-border); border-radius: 12px; width: 44px; height: 44px; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); flex-shrink: 0; }
         .type-area { flex: 1; padding: 12px 16px; border: 1px solid var(--panel-border); border-radius: 12px; outline: none; background: white; font-size: 14.5px; height: 44px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02); }
-        .emit-action { background: var(--accent); color: white; border: none; border-radius: 12px; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3); }
+        .emit-action { background: var(--accent); color: white; border: none; border-radius: 12px; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3); flex-shrink: 0; }
         
         #fileInput, #importFile { display: none; }
         .blank-slate { position: absolute; top:0; left:0; width:100%; height:100%; background: #f8fafc; display:flex; justify-content:center; align-items:center; color: var(--text-muted); font-size:15px; z-index: 5; text-align: center; padding: 20px; }
         .toast-popup { position: fixed; bottom: 95px; left: 50%; transform: translateX(-50%); background: var(--text-dark); color: white; padding: 12px 24px; border-radius: 12px; display: none; font-size: 13px; z-index: 5000; box-shadow: 0 10px 30px rgba(0,0,0,0.15); font-weight: 500; }
         .back-nav { display: none; margin-right: 14px; cursor: pointer; font-size: 20px; font-weight: bold; }
         
+        /* Tablet Fixes */
         @media (max-width: 900px) {
             .app-window { grid-template-columns: 300px 1fr; }
         }
         
+        /* Mobile Overlap Fixed Completely */
         @media (max-width: 650px) {
-            .app-window { grid-template-columns: 100% 0%; }
-            .sidebar { width: 100vw; }
+            .app-window { display: block; }
+            .sidebar { width: 100vw; height: 100vh; }
             .viewport-main { 
-                position: absolute; top: 0; left: 0; width: 100vw; height: 100%; z-index: 100; background: #f1f5f9;
-                transform: translateX(100vw); transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                height: 100dvh;
+                z-index: 1000;
+                background: #f8fafc !important; /* Solid background applied */
+                transform: translateX(100%);
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
             }
             .viewport-main.mobile-on { transform: translateX(0); }
             .back-nav { display: inline-block; }
@@ -196,11 +208,10 @@
 
 <script>
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').then(() => console.log("PWA Loaded"));
+        navigator.serviceWorker.register('sw.js').catch(() => console.log("SW missing but continuing..."));
     }
 
-    // High Speed LAN Chunk Size
-    const CHUNK_MAX = 64 * 1024;
+    const CHUNK_MAX = 128 * 1024; // 128KB Chunks for much higher speed
     let peer;
     let myId = localStorage.getItem('ath_node_id') || 'ath_' + Math.random().toString(36).substr(2, 9);
     localStorage.setItem('ath_node_id', myId);
@@ -218,16 +229,25 @@
         }
     }
 
+    // Audio Notification Alert Generator
+    function playNotifySound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 850; osc.type = 'sine';
+            gain.gain.setValueAtTime(0, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.05);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15);
+            osc.start(); osc.stop(ctx.currentTime + 0.15);
+        } catch(e) {}
+    }
+
     function initializeNodeEngine() {
         if(peer) { try { peer.destroy(); } catch(e){} }
         
-        peer = new Peer(myId, { 
-            debug: 1,
-            config: {
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-                iceCandidatePoolSize: 10
-            }
-        });
+        peer = new Peer(myId, { debug: 1 });
 
         peer.on('open', (id) => {
             document.getElementById('myIdDisplay').innerText = "Node ID: " + id + " (Tap)";
@@ -237,8 +257,7 @@
 
         peer.on('connection', (incomingConn) => bindNodeEvents(incomingConn));
         peer.on('error', (err) => {
-            console.error("PeerJS Error:", err);
-            showToast("Handshake latency/timeout reset.");
+            console.error("PeerJS Handshake Flag Error:", err);
         });
     }
 
@@ -340,8 +359,21 @@
     function processIncomingPayload(originNodeId, payload) {
         if(payload.type === 'txt') {
             commitAndLogBubble(originNodeId, payload.data, 'b-other', false);
-            if (document.hidden && Notification.permission === "granted") {
-                new Notification(`Aether P2P`, { body: `${contactsBook[originNodeId].name}: ${payload.data}` });
+            
+            // Advanced Push/Audio Notification Setup
+            if (document.hidden) {
+                playNotifySound(); // Play Audio Beep
+                if (Notification.permission === "granted") {
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.ready.then(reg => {
+                            reg.showNotification(`Aether P2P`, { body: `${contactsBook[originNodeId].name}: ${payload.data}` });
+                        }).catch(() => { 
+                            new Notification(`Aether P2P`, { body: `${contactsBook[originNodeId].name}: ${payload.data}` }); 
+                        });
+                    } else {
+                        new Notification(`Aether P2P`, { body: `${contactsBook[originNodeId].name}: ${payload.data}` });
+                    }
+                }
             }
         }
         else if(payload.type === 'meta-start') {
@@ -353,14 +385,10 @@
             if(trackerObj) {
                 trackerObj.blocksArray[payload.index] = payload.binary;
                 trackerObj.receivedCounter++;
-                
-                // Optimized Fix: Render progress bar UI only every 20 chunks to avoid locking main thread
-                if (trackerObj.receivedCounter % 20 === 0 || trackerObj.receivedCounter === trackerObj.blocksLength) {
+                // Optimize UI Update frequency to reduce CPU load
+                if(trackerObj.receivedCounter % 5 === 0 || trackerObj.receivedCounter === trackerObj.blocksLength) {
                     const progressVal = Math.round((trackerObj.receivedCounter / trackerObj.blocksLength) * 100);
-                    if(trackerObj.trackId) { 
-                        const fillBar = document.getElementById(`gf-${trackerObj.trackId}`); 
-                        if(fillBar) fillBar.style.width = progressVal + '%'; 
-                    }
+                    if(trackerObj.trackId) { const fillBar = document.getElementById(`gf-${trackerObj.trackId}`); if(fillBar) fillBar.style.width = progressVal + '%'; }
                 }
             }
         }
@@ -370,8 +398,9 @@
                 const compileBlob = new Blob(trackerObj.blocksArray, { type: trackerObj.mime });
                 const structuralUrl = URL.createObjectURL(compileBlob);
                 if(trackerObj.trackId) wrapStreamTrack(trackerObj.trackId, trackerObj.name, structuralUrl);
-                logPayloadToLocalStore(originNodeId, `[File Component] ${trackerObj.name}`, 'b-other');
+                logPayloadToLocalStore(originNodeId, `[File Received] ${trackerObj.name}`, 'b-other');
                 delete activeAssemblers[payload.allocationId];
+                playNotifySound(); // Audio alert on file finish
             }
         }
     }
@@ -407,7 +436,7 @@
         event.target.value = '';
     }
 
-    // High Speed Async Pipeline Loop (No FileReader memory leak, No DOM freezing)
+    /* Fixed Optimization: Async/Await Loop for Maximum File Transfer Speed */
     async function spawnIndependentFileStreamPipeline(file, receiverNodeId) {
         const mainPipe = connectionsPool[receiverNodeId];
         if(!mainPipe || !mainPipe.open) return alert("Connection lost!");
@@ -415,43 +444,37 @@
         const allocationId = 'stream_' + Math.random().toString(36).substr(2, 9);
         const gaugeId = renderStreamTrack(file.name, 'b-me');
 
-        let readingOffset = 0; 
         const totalRequiredBlocks = Math.ceil(file.size / CHUNK_MAX); 
-        
         mainPipe.send({ type: 'meta-start', allocationId: allocationId, name: file.name, mime: file.type, blocksLength: totalRequiredBlocks });
 
         for (let i = 0; i < totalRequiredBlocks; i++) {
-            if(!mainPipe.open) break;
+            if(!mainPipe.open) return; // Drop if connection lost
 
-            // Adaptive backpressure: Pause loop instantly if WebRTC buffer crosses 1MB
-            while (mainPipe.dataChannel.bufferedAmount > 1024 * 1024) {
-                await new Promise(resolve => setTimeout(resolve, 2));
+            // Buffer Overflow Protection: Pause only if buffer exceeds 8MB
+            while (mainPipe.dataChannel.bufferedAmount > 8 * 1024 * 1024) {
+                await new Promise(r => setTimeout(r, 20));
             }
 
-            const sliceBound = file.slice(readingOffset, readingOffset + CHUNK_MAX);
+            const start = i * CHUNK_MAX;
+            const end = Math.min(start + CHUNK_MAX, file.size);
+            const chunk = file.slice(start, end);
+            
             try {
-                const buffer = await sliceBound.arrayBuffer();
+                const buffer = await chunk.arrayBuffer();
                 mainPipe.send({ type: 'block-data', allocationId: allocationId, index: i, binary: buffer });
-            } catch (err) {
-                console.error("Chunk Stream Error:", err);
-                break;
-            }
+            } catch(err) { console.error("File Read Error:", err); return; }
 
-            readingOffset += CHUNK_MAX;
-
-            // UI optimization: Update DOM every 10 chunks to save phone CPU
-            if (i % 10 === 0 || i === totalRequiredBlocks - 1) {
-                const executionPercent = Math.min(100, Math.round((readingOffset / file.size) * 100));
+            // Throttled UI update
+            if (i % 5 === 0 || i === totalRequiredBlocks - 1) {
+                const executionPercent = Math.round(((i + 1) / totalRequiredBlocks) * 100);
                 const progressFill = document.getElementById(`gf-${gaugeId}`);
                 if(progressFill) progressFill.style.width = executionPercent + '%';
             }
         }
-
-        if(mainPipe.open) {
-            mainPipe.send({ type: 'meta-end', allocationId: allocationId });
-            wrapStreamTrack(gaugeId, file.name, URL.createObjectURL(file));
-            logPayloadToLocalStore(receiverNodeId, `[File Component] ${file.name}`, 'b-me');
-        }
+        
+        mainPipe.send({ type: 'meta-end', allocationId: allocationId });
+        wrapStreamTrack(gaugeId, file.name, URL.createObjectURL(file));
+        logPayloadToLocalStore(receiverNodeId, `[File Sent] ${file.name}`, 'b-me');
     }
 
     function renderStreamTrack(fileName, customClass) {
@@ -515,10 +538,20 @@
     function showToast(infoText) { const box = document.getElementById('systemToast'); box.innerText = infoText; box.style.display = 'block'; setTimeout(() => box.style.display = 'none', 1800); }
 
     function exportAetherDatabase() {
-        const backupDataObj = { version: "3.0.0", timestamp: Date.now(), nodeId: localStorage.getItem('ath_node_id'), contacts: localStorage.getItem('ath_book'), chats: localStorage.getItem('ath_archive'), outbox: localStorage.getItem('ath_outbox') };
+        const backupDataObj = {
+            version: "3.0.0",
+            timestamp: Date.now(),
+            nodeId: localStorage.getItem('ath_node_id'),
+            contacts: localStorage.getItem('ath_book'),
+            chats: localStorage.getItem('ath_archive'),
+            outbox: localStorage.getItem('ath_outbox')
+        };
         const stringifiedBlob = new Blob([JSON.stringify(backupDataObj, null, 2)], { type: "application/json" });
-        const temporaryLink = document.createElement('a'); temporaryLink.href = URL.createObjectURL(stringifiedBlob);
-        temporaryLink.download = `Aether_Backup_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(temporaryLink); temporaryLink.click(); document.body.removeChild(temporaryLink); showToast("Database Exported Successfully!");
+        const temporaryLink = document.createElement('a');
+        temporaryLink.href = URL.createObjectURL(stringifiedBlob);
+        temporaryLink.download = `Aether_Backup_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(temporaryLink); temporaryLink.click(); document.body.removeChild(temporaryLink);
+        showToast("Database Exported Successfully!");
     }
 
     function importAetherDatabase(event) {
