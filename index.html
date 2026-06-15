@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <style>
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.6);
+            --glass-bg: #ffffff;
             --glass-blur: blur(20px);
             --accent: #6366f1;
             --accent-hover: #4f46e5;
@@ -23,35 +23,32 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
         body { background: var(--bg-gradient); height: 100vh; height: 100dvh; display: flex; justify-content: center; align-items: center; color: var(--text-dark); padding: 0; overflow: hidden; }
         
-        /* Main Layout Engine - Fluid Grid Split Screen */
         .app-window { 
             width: 100vw; 
             height: 100vh; 
             height: 100dvh;
-            background: rgba(255, 255, 255, 0.3);
+            background: #f1f5f9;
             display: grid;
             grid-template-columns: 360px 1fr;
             position: relative;
             overflow: hidden;
         }
         
-        /* Sidebar System */
         .sidebar { 
             display: flex; 
             flex-direction: column; 
-            background: rgba(255, 255, 255, 0.7); 
+            background: #ffffff; 
             border-right: 1px solid var(--panel-border);
             height: 100%;
             overflow: hidden;
             z-index: 10;
         }
-        .sidebar-header { padding: 16px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--panel-border); background: rgba(255,255,255,0.4); }
+        .sidebar-header { padding: 16px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--panel-border); background: #ffffff; }
         
-        /* Layout Fix: ID Card Wrapping */
         .my-id-card { 
             font-size: 12px; 
             font-weight: 600; 
-            background: white; 
+            background: #f8fafc; 
             padding: 12px; 
             border-radius: 12px; 
             border: 1px solid var(--panel-border); 
@@ -73,21 +70,20 @@
         .add-box button { background: var(--accent); color: white; border: none; padding: 11px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 13px; transition: background 0.2s; }
         .add-box button:hover { background: var(--accent-hover); }
         
-        .chat-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+        .chat-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 4px; background: #ffffff; }
         .contact-card { padding: 14px; background: transparent; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
-        .contact-card:hover { background: rgba(255, 255, 255, 0.4); }
-        .contact-card.active { background: white; border-color: var(--panel-border); box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .contact-card:hover { background: #f1f5f9; }
+        .contact-card.active { background: #e0e7ff; border-color: var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
         .contact-info { display: flex; flex-direction: column; gap: 3px; overflow: hidden; padding-right: 8px; }
-        .contact-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .contact-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-dark); }
         .contact-id-sub { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); flex-shrink: 0; }
         .status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
         
-        /* Main Viewport Workspace */
         .viewport-main { 
             display: flex; 
             flex-direction: column; 
-            background: rgba(255, 255, 255, 0.15); 
+            background: #f8fafc; 
             position: relative; 
             height: 100%;
             overflow: hidden;
@@ -100,20 +96,21 @@
             justify-content: space-between; 
             align-items: center; 
             border-bottom: 1px solid var(--panel-border); 
-            background: rgba(255,255,255,0.6);
-            backdrop-filter: rgba(239, 68, 68, 0.08);
+            background: #ffffff;
+            z-index: 5;
         }
         
-        .chat-scroller { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 14px; background: rgba(255,255,255,0.1); }
+        .chat-scroller { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 14px; background: #f1f5f9; }
         
         .nudge-btn { background: rgba(239, 68, 68, 0.08); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.15); padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; display: none; }
         
-        /* Chat Bubbles Engine */
+        /* Chat Bubbles Engine Fixed */
         .bubble { max-width: 70%; padding: 12px 16px; border-radius: 16px; font-size: 14.5px; line-height: 1.5; word-wrap: break-word; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
         .b-me { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 4px; }
         .b-other { align-self: flex-start; background: white; color: var(--text-dark); border-bottom-left-radius: 4px; border: 1px solid var(--panel-border); }
         .b-pending { opacity: 0.65; border: 1px dashed rgba(255,255,255,0.5); background: #4f46e5 !important; }
         .b-time { font-size: 10px; opacity: 0.6; display: block; text-align: right; margin-top: 6px; }
+        .b-me .b-time { color: #e0e7ff; }
         .b-other .b-time { color: var(--text-muted); }
         
         .stream-card { background: rgba(0, 0, 0, 0.05); padding: 10px; border-radius: 10px; margin-top: 4px; display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
@@ -121,7 +118,6 @@
         .gauge-fill { background: var(--accent); width: 0%; height: 100%; }
         .stream-link { color: inherit; text-decoration: underline; font-weight: 500; font-size: 13px; display: block; word-break: break-all; }
         
-        /* Control Send Box */
         .control-panel { 
             height: 75px; 
             padding: 14px 24px; 
@@ -129,8 +125,7 @@
             align-items: center; 
             gap: 12px; 
             border-top: 1px solid var(--panel-border); 
-            background: rgba(255, 255, 255, 0.8); 
-            backdrop-filter: var(--glass-blur);
+            background: #ffffff; 
         }
         .clip-action { background: white; border: 1px solid var(--panel-border); border-radius: 12px; width: 44px; height: 44px; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .type-area { flex: 1; padding: 12px 16px; border: 1px solid var(--panel-border); border-radius: 12px; outline: none; background: white; font-size: 14.5px; height: 44px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02); }
@@ -141,11 +136,12 @@
         .toast-popup { position: fixed; bottom: 95px; left: 50%; transform: translateX(-50%); background: var(--text-dark); color: white; padding: 12px 24px; border-radius: 12px; display: none; font-size: 13px; z-index: 5000; box-shadow: 0 10px 30px rgba(0,0,0,0.15); font-weight: 500; }
         .back-nav { display: none; margin-right: 14px; cursor: pointer; font-size: 20px; font-weight: bold; }
         
-        /* 📱 RESPONSIVE CODES ENGINE - TABLETS & PHONES PERFECTED */
+        /* Tablet Fixes */
         @media (max-width: 900px) {
             .app-window { grid-template-columns: 300px 1fr; }
         }
         
+        /* Mobile Overlap Fixed (Solid Background & Z-Index) */
         @media (max-width: 650px) {
             .app-window { grid-template-columns: 100% 0%; }
             .sidebar { width: 100vw; }
@@ -156,6 +152,7 @@
                 width: 100vw;
                 height: 100%;
                 z-index: 100;
+                background: #f1f5f9; /* Solid background stops sidebar bleeding through */
                 transform: translateX(100vw);
                 transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
             }
@@ -164,7 +161,7 @@
         }
     </style>
 </head>
-<body>
+<body onclick="tryEnableNotifications()">
 
 <div class="app-window">
     <div class="sidebar">
@@ -224,7 +221,11 @@
     let outboxQueue = JSON.parse(localStorage.getItem('ath_outbox')) || {}; 
     let activeAssemblers = {};
 
-    if (Notification.permission !== "granted") Notification.requestPermission();
+    function tryEnableNotifications() {
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+    }
 
     function initializeNodeEngine() {
         if(peer) { try { peer.destroy(); } catch(e){} }
@@ -328,12 +329,12 @@
         
         if(activeChannel && activeChannel.open) {
             activeChannel.send({ type: 'txt', data: payload });
-            commitAndLogBubble(activeNodeId, payload, 'b_me', false);
+            commitAndLogBubble(activeNodeId, payload, 'b-me', false);
         } else {
             if(!outboxQueue[activeNodeId]) outboxQueue[activeNodeId] = [];
             outboxQueue[activeNodeId].push({ data: payload });
             localStorage.setItem('ath_outbox', JSON.stringify(outboxQueue));
-            commitAndLogBubble(activeNodeId, payload, 'b_me', true); 
+            commitAndLogBubble(activeNodeId, payload, 'b-me', true); 
             showToast("Saved to Outbox Cache Strategy!");
         }
         input.value = '';
@@ -341,13 +342,13 @@
 
     function processIncomingPayload(originNodeId, payload) {
         if(payload.type === 'txt') {
-            commitAndLogBubble(originNodeId, payload.data, 'b_other', false);
-            if (document.hidden) {
+            commitAndLogBubble(originNodeId, payload.data, 'b-other', false);
+            if (document.hidden && Notification.permission === "granted") {
                 new Notification(`Aether P2P`, { body: `${contactsBook[originNodeId].name}: ${payload.data}` });
             }
         }
         else if(payload.type === 'meta-start') {
-            const trackId = (originNodeId === activeNodeId) ? renderStreamTrack(payload.name, 'b_other') : null;
+            const trackId = (originNodeId === activeNodeId) ? renderStreamTrack(payload.name, 'b-other') : null;
             activeAssemblers[payload.allocationId] = { name: payload.name, mime: payload.mime, blocksArray: new Array(payload.blocksLength), blocksLength: payload.blocksLength, receivedCounter: 0, trackId: trackId };
         }
         else if(payload.type === 'block-data') {
@@ -365,7 +366,7 @@
                 const compileBlob = new Blob(trackerObj.blocksArray, { type: trackerObj.mime });
                 const structuralUrl = URL.createObjectURL(compileBlob);
                 if(trackerObj.trackId) wrapStreamTrack(trackerObj.trackId, trackerObj.name, structuralUrl);
-                logPayloadToLocalStore(originNodeId, `[File Component] ${trackerObj.name}`, 'b_other');
+                logPayloadToLocalStore(originNodeId, `[File Component] ${trackerObj.name}`, 'b-other');
                 delete activeAssemblers[payload.allocationId];
             }
         }
@@ -402,37 +403,42 @@
         event.target.value = '';
     }
 
+    /* Fixed Optimization: Reuses main P2P pipeline stream for lightning speed */
     function spawnIndependentFileStreamPipeline(file, receiverNodeId) {
-        const isolatedDataPipe = peer.connect(receiverNodeId, { reliable: true, label: 'stream_' + file.name });
+        const mainPipe = connectionsPool[receiverNodeId];
+        if(!mainPipe || !mainPipe.open) return alert("Connection lost!");
+        
         const allocationId = 'stream_' + Math.random().toString(36).substr(2, 9);
-        const gaugeId = renderStreamTrack(file.name, 'b_me');
+        const gaugeId = renderStreamTrack(file.name, 'b-me');
 
-        isolatedDataPipe.on('open', () => {
-            let readingOffset = 0; const totalRequiredBlocks = Math.ceil(file.size / CHUNK_MAX); let currentBlockIndex = 0;
-            isolatedDataPipe.send({ type: 'meta-start', allocationId: allocationId, name: file.name, mime: file.type, blocksLength: totalRequiredBlocks });
+        let readingOffset = 0; 
+        const totalRequiredBlocks = Math.ceil(file.size / CHUNK_MAX); 
+        let currentBlockIndex = 0;
+        
+        mainPipe.send({ type: 'meta-start', allocationId: allocationId, name: file.name, mime: file.type, blocksLength: totalRequiredBlocks });
 
-            function executeNextBlockPush() {
-                const sliceBound = file.slice(readingOffset, readingOffset + CHUNK_MAX);
-                const fileReaderInstance = new FileReader();
-                fileReaderInstance.onload = function(evt) {
-                    if(!isolatedDataPipe.open) return;
-                    isolatedDataPipe.send({ type: 'block-data', allocationId: allocationId, index: currentBlockIndex, binary: evt.target.result });
-                    readingOffset += CHUNK_MAX; currentBlockIndex++;
-                    const executionPercent = Math.min(100, Math.round((readingOffset / file.size) * 100));
-                    document.getElementById(`gf-${gaugeId}`).style.width = executionPercent + '%';
-                    if(readingOffset < file.size) {
-                        if (isolatedDataPipe.dataChannel.bufferedAmount > 2 * 1024 * 1024) setTimeout(executeNextBlockPush, 25);
-                        else setTimeout(executeNextBlockPush, 1);
-                    } else {
-                        isolatedDataPipe.send({ type: 'meta-end', allocationId: allocationId });
-                        wrapStreamTrack(gaugeId, file.name, URL.createObjectURL(file));
-                        setTimeout(() => isolatedDataPipe.close(), 1000);
-                    }
-                };
-                fileReaderInstance.readAsArrayBuffer(sliceBound);
-            }
-            executeNextBlockPush();
-        });
+        function executeNextBlockPush() {
+            const sliceBound = file.slice(readingOffset, readingOffset + CHUNK_MAX);
+            const fileReaderInstance = new FileReader();
+            fileReaderInstance.onload = function(evt) {
+                if(!mainPipe.open) return;
+                mainPipe.send({ type: 'block-data', allocationId: allocationId, index: currentBlockIndex, binary: evt.target.result });
+                readingOffset += CHUNK_MAX; currentBlockIndex++;
+                const executionPercent = Math.min(100, Math.round((readingOffset / file.size) * 100));
+                const progressFill = document.getElementById(`gf-${gaugeId}`);
+                if(progressFill) progressFill.style.width = executionPercent + '%';
+                
+                if(readingOffset < file.size) {
+                    if (mainPipe.dataChannel.bufferedAmount > 2 * 1024 * 1024) setTimeout(executeNextBlockPush, 20);
+                    else setTimeout(executeNextBlockPush, 1);
+                } else {
+                    mainPipe.send({ type: 'meta-end', allocationId: allocationId });
+                    wrapStreamTrack(gaugeId, file.name, URL.createObjectURL(file));
+                }
+            };
+            fileReaderInstance.readAsArrayBuffer(sliceBound);
+        }
+        executeNextBlockPush();
     }
 
     function renderStreamTrack(fileName, customClass) {
@@ -478,7 +484,7 @@
         });
         const pendingQueue = outboxQueue[activeNodeId] || [];
         pendingQueue.forEach(item => {
-            const bubbleNode = document.createElement('div'); bubbleNode.className = `bubble b_me b-pending`; bubbleNode.innerText = item.data;
+            const bubbleNode = document.createElement('div'); bubbleNode.className = `bubble b-me b-pending`; bubbleNode.innerText = item.data;
             const timeTag = document.createElement('span'); timeTag.className = 'b-time'; timeTag.innerText = '⏳ Outbox Buffer';
             bubbleNode.appendChild(timeTag); tray.appendChild(bubbleNode);
         });
