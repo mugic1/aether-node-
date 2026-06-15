@@ -141,7 +141,7 @@
             .app-window { grid-template-columns: 300px 1fr; }
         }
         
-        /* Mobile Overlap Fixed (Solid Background & Z-Index) */
+        /* Mobile Overlap Fixed */
         @media (max-width: 650px) {
             .app-window { grid-template-columns: 100% 0%; }
             .sidebar { width: 100vw; }
@@ -152,7 +152,7 @@
                 width: 100vw;
                 height: 100%;
                 z-index: 100;
-                background: #f1f5f9; /* Solid background stops sidebar bleeding through */
+                background: #f1f5f9;
                 transform: translateX(100vw);
                 transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
             }
@@ -403,7 +403,7 @@
         event.target.value = '';
     }
 
-    /* Fixed Optimization: Reuses main P2P pipeline stream for lightning speed */
+    /* Fixed Optimization: Existing open channel reuse strategy for fast streaming */
     function spawnIndependentFileStreamPipeline(file, receiverNodeId) {
         const mainPipe = connectionsPool[receiverNodeId];
         if(!mainPipe || !mainPipe.open) return alert("Connection lost!");
