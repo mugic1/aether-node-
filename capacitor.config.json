@@ -1,0 +1,6 @@
+{
+  "appId": "com.mycompany.mygithubapp",
+  "appName": "My GitHub App",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}
