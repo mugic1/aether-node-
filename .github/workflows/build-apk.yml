@@ -3,7 +3,7 @@ name: Convert Web to APK
 on:
   push:
     branches:
-      - main  # Ya aapki jo bhi default branch ho (e.g., master)
+      - main  # Agar aapki branch ka naam master hai toh yahan master likh dena
 
 jobs:
   build:
@@ -16,7 +16,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: '20'
 
     - name: Install Dependencies
       run: npm install
@@ -30,23 +30,20 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    # Website ko Android project me convert karna
-    - name: Initialize Capacitor Android
+    - name: Create and Sync Android Project
       run: |
-        npx cap npx cap add android
+        npx cap add android
         npx cap sync android
 
-    # APK Compile karna
     - name: Build Android APK
       run: |
         cd android
         chmod +x gradlew
         ./gradlew assembleDebug
 
-    # APK ko download ke liye upload karna
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: website-apk
+        name: Aether-Node-APK
         path: android/app/build/outputs/apk/debug/app-debug.apk
         
