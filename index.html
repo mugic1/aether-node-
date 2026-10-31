@@ -4,320 +4,703 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>QuickShare</title>
-  <!-- PeerJS for WebRTC signaling -->
   <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
   <style>
+    :root {
+      --bg: #07111f;
+      --bg-2: #0b1728;
+      --panel: rgba(17, 25, 38, 0.82);
+      --panel-strong: rgba(20, 31, 46, 0.96);
+      --panel-soft: rgba(26, 39, 56, 0.8);
+      --line: rgba(148, 163, 184, 0.18);
+      --text: #edf5ff;
+      --muted: #9fb6d1;
+      --dim: #6f8cb6;
+      --primary: #7c5cff;
+      --primary-2: #4cc9f0;
+      --success: #2fd38b;
+      --danger: #ff5f6d;
+      --warning: #ffb84d;
+      --shadow: 0 22px 60px rgba(3, 10, 20, 0.6);
+      --radius-xl: 26px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 12px;
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(124, 92, 255, 0.26), transparent 32%),
+        radial-gradient(circle at top right, rgba(76, 201, 240, 0.2), transparent 28%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+      color: var(--text);
+      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     body {
-      background: #0a0a0a;
-      color: #e0e0e0;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      padding: 12px;
+      padding: 18px;
+      overflow-x: hidden;
     }
 
     .app {
-      width: 100%;
-      max-width: 600px;
-      background: #0a0a0a;
-      border-radius: 24px;
+      width: min(100%, 760px);
+      background: rgba(8, 13, 22, 0.7);
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       overflow: hidden;
+      position: relative;
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(124, 92, 255, 0.12), transparent 36%, rgba(76, 201, 240, 0.08));
+      pointer-events: none;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      padding: 18px;
+    }
+
+    .topbar {
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 6px 18px;
     }
 
-    /* Header / Connection Panel */
-    .device-card {
-      background: #1a1a1a;
-      margin: 12px;
-      padding: 16px;
-      border-radius: 20px;
-    }
-
-    .device-card h3 {
-      font-size: 13px;
-      color: #aaa;
-      margin-bottom: 10px;
-    }
-
-    .device-info {
+    .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      word-break: break-all;
+      gap: 12px;
+      min-width: 0;
     }
 
-    .device-name {
-      font-weight: 600;
-      font-size: 18px;
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+      box-shadow: 0 12px 24px rgba(124, 92, 255, 0.35);
+      font-size: 19px;
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    .brand-title {
+      font-size: 1.02rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .brand-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .status-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(47, 211, 139, 0.25);
+      background: rgba(47, 211, 139, 0.1);
+      color: #b9f7d6;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .status-pill.disconnected {
+      border-color: rgba(255, 95, 109, 0.25);
+      background: rgba(255, 95, 109, 0.08);
+      color: #ffc8cf;
+    }
+
+    .device-card,
+    .panel,
+    .incoming-box {
+      background: linear-gradient(180deg, rgba(17, 25, 38, 0.95), rgba(15, 22, 32, 0.85));
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .device-card {
+      padding: 18px 18px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .device-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(124, 92, 255, 0.9), transparent);
+      opacity: 0.8;
+    }
+
+    .device-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .section-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 700;
     }
 
     .device-id {
-      background: #000;
-      padding: 6px 12px;
-      border-radius: 30px;
-      font-size: 14px;
-      color: #00b4d8;
+      border: 1px solid rgba(76, 201, 240, 0.2);
+      background: rgba(12, 17, 25, 0.9);
+      color: var(--primary-2);
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
       cursor: pointer;
       user-select: all;
-      transition: 0.2s;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: transform 0.18s ease, border-color 0.18s ease;
     }
+
     .device-id:active {
-      background: #222;
+      transform: scale(0.98);
+      border-color: rgba(76, 201, 240, 0.42);
+    }
+
+    .device-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .device-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(124,92,255,0.22), rgba(76,201,240,0.18));
+      border: 1px solid rgba(124, 92, 255, 0.35);
+      display: grid;
+      place-items: center;
+      font-size: 1.3rem;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+
+    .device-name {
+      font-size: clamp(1.1rem, 2vw, 1.52rem);
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      word-break: break-word;
     }
 
     .connect-row {
       display: flex;
       gap: 10px;
-      margin-top: 12px;
+      align-items: center;
+      margin-top: 6px;
     }
 
     .connect-row input {
       flex: 1;
-      padding: 12px 16px;
-      border-radius: 30px;
-      border: none;
-      background: #0a0a0a;
-      color: #e0e0e0;
-      font-size: 15px;
+      min-width: 0;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(9, 14, 22, 0.9);
+      color: var(--text);
+      font-size: 0.96rem;
       outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .connect-row input:focus {
+      border-color: rgba(124, 92, 255, 0.6);
+      box-shadow: 0 0 0 4px rgba(124,92,255,0.12);
     }
 
     .btn {
       border: none;
-      background: #7b2ffc;
-      color: white;
-      font-weight: 600;
-      padding: 12px 20px;
-      border-radius: 30px;
-      font-size: 15px;
+      border-radius: 14px;
+      padding: 13px 16px;
+      font-weight: 700;
+      font-size: 0.94rem;
+      letter-spacing: 0.01em;
       cursor: pointer;
-      transition: 0.2s;
+      color: var(--text);
+      user-select: none;
+      transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
     }
+
+    .btn:hover {
+      filter: brightness(1.06);
+    }
+
     .btn:active {
-      transform: scale(0.97);
+      transform: translateY(1px) scale(0.99);
     }
-    .btn.accent {
-      background: #00b4d8;
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--primary) 0%, #9a7bff 100%);
+      box-shadow: 0 12px 25px rgba(124, 92, 255, 0.28);
     }
-    .btn.danger {
-      background: #e74c3c;
+
+    .btn.secondary {
+      background: linear-gradient(135deg, var(--primary-2) 0%, #7bdff7 100%);
+      box-shadow: 0 12px 25px rgba(76, 201, 240, 0.22);
+      color: #07131d;
     }
+
     .btn.success {
-      background: #4caf50;
+      background: linear-gradient(135deg, #2fd38b 0%, #58e0a1 100%);
+      color: #072111;
+      box-shadow: 0 12px 25px rgba(47, 211, 139, 0.2);
+    }
+
+    .btn.danger {
+      background: linear-gradient(135deg, #ff6b7a 0%, #ff8b9c 100%);
+      color: #fff;
+      box-shadow: 0 12px 25px rgba(255, 95, 109, 0.2);
     }
 
     .incoming-box {
-      background: #1a1a1a;
-      margin: 0 12px 12px;
-      padding: 14px;
-      border-radius: 20px;
+      margin-top: 18px;
+      padding: 14px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
       flex-wrap: wrap;
-      gap: 10px;
     }
 
-    .status-text {
-      margin: 12px;
-      font-size: 14px;
-      color: #aaa;
+    .incoming-box .msg {
+      font-size: 0.96rem;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .incoming-box .actions {
+      display: flex;
+      gap: 10px;
+      margin: 0;
+      flex-wrap: wrap;
+    }
+
+    .status-bar {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 10px;
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin: 18px 0 14px;
+      padding: 0 4px;
     }
 
-    .status-text::before {
-      content: "●";
-      color: #4caf50;
-      font-size: 10px;
-    }
-    .status-text.disconnected::before {
-      color: #e74c3c;
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 6px rgba(47, 211, 139, 0.08);
+      animation: pulse 1.5s infinite ease-in-out;
     }
 
-    /* Tabs */
+    .status-bar.disconnected .status-dot {
+      background: var(--danger);
+      box-shadow: none;
+      animation: none;
+    }
+
     .tabs {
       display: flex;
-      margin: 0 12px;
-      background: #1a1a1a;
-      border-radius: 30px;
-      padding: 4px;
+      gap: 8px;
+      padding: 6px;
+      background: rgba(12, 18, 27, 0.88);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      margin-bottom: 14px;
     }
 
     .tab {
       flex: 1;
-      text-align: center;
-      padding: 12px;
-      border-radius: 30px;
-      font-weight: 600;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 12px 10px;
+      border-radius: 12px;
       cursor: pointer;
-      transition: 0.2s;
+      transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
     }
+
     .tab.active {
-      background: #7b2ffc;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
       color: white;
+      box-shadow: 0 10px 20px rgba(124, 92, 255, 0.2);
     }
 
-    /* Action buttons */
-    .actions {
-      margin: 16px 12px 8px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    /* File list */
-    .file-list {
-      margin: 8px 12px;
-      background: #1a1a1a;
-      border-radius: 20px;
+    .panel {
       padding: 12px;
-      max-height: 300px;
-      overflow-y: auto;
+      min-height: 200px;
     }
 
-    .file-item {
+    .panel-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #222;
-    }
-    .file-item:last-child {
-      border-bottom: none;
+      gap: 12px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 6px 6px 0;
     }
 
-    .file-info {
+    .actions-row {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .file-name {
-      font-weight: 500;
-      word-break: break-word;
-    }
-    .file-size {
-      font-size: 12px;
-      color: #aaa;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 0 0 12px;
     }
 
-    .remove-btn {
-      background: none;
-      border: none;
-      color: #e74c3c;
-      font-size: 20px;
-      cursor: pointer;
-      padding: 4px 8px;
+    .file-list {
+      background: rgba(9, 14, 22, 0.75);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      min-height: 120px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 0 10px;
     }
 
+    .file-list.empty {
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      min-height: 110px;
+      text-align: center;
+      padding: 24px 18px;
+      font-size: 0.9rem;
+    }
+
+    .file-item,
     .received-item {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 10px;
-      padding: 8px 0;
-      border-bottom: 1px solid #222;
+      padding: 12px 8px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
     }
-    .received-item .file-name {
+
+    .file-item:last-child,
+    .received-item:last-child {
+      border-bottom: none;
+    }
+
+    .file-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
       flex: 1;
     }
-    .copy-text {
-      font-size: 13px;
-      color: #00b4d8;
+
+    .file-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: rgba(124, 92, 255, 0.12);
+      border: 1px solid rgba(124, 92, 255, 0.18);
+      display: grid;
+      place-items: center;
+      color: var(--primary-2);
+      flex-shrink: 0;
+    }
+
+    .file-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .file-name {
+      font-weight: 600;
+      color: var(--text);
+      word-break: break-word;
+      line-height: 1.3;
+    }
+
+    .file-size {
+      display: block;
+      color: var(--muted);
+      font-size: 0.74rem;
+      margin-top: 2px;
+    }
+
+    .remove-btn {
+      background: transparent;
+      border: none;
+      color: var(--danger);
+      font-size: 1.4rem;
+      line-height: 1;
+      padding: 8px;
       cursor: pointer;
-      margin-left: auto;
+      border-radius: 8px;
+      transition: background 0.18s ease;
     }
 
-    .progress-bar {
-      height: 4px;
-      background: #333;
-      border-radius: 2px;
-      margin: 8px 0;
-    }
-    .progress-fill {
-      height: 100%;
-      width: 0%;
-      background: #00b4d8;
-      border-radius: 2px;
-      transition: width 0.2s;
+    .remove-btn:hover {
+      background: rgba(255, 95, 109, 0.08);
     }
 
+    .copy-text {
+      color: var(--primary-2);
+      font-weight: 700;
+      font-size: 0.76rem;
+      cursor: pointer;
+      border: 1px solid rgba(76, 201, 240, 0.2);
+      background: rgba(76, 201, 240, 0.05);
+      padding: 6px 8px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+
+    .status-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 0 4px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .status-text.hidden,
     .hidden {
       display: none !important;
     }
 
-    @media (max-width: 400px) {
-      .btn {
-        padding: 12px 16px;
-        font-size: 14px;
+    .progress-wrap {
+      margin-top: 10px;
+      display: none;
+    }
+
+    .progress-wrap.visible {
+      display: block;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.18);
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.06);
+    }
+
+    .progress-fill {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--primary) 0%, var(--primary-2) 100%);
+      transition: width 0.18s ease;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 10px;
+      }
+
+      .shell {
+        padding: 14px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .status-pill {
+        font-size: 0.65rem;
+      }
+
+      .connect-row {
+        flex-direction: column;
+      }
+
+      .connect-row .btn {
+        width: 100%;
+      }
+
+      .device-card {
+        padding: 16px 14px 14px;
+      }
+
+      .device-header,
+      .device-meta,
+      .incoming-box {
+        align-items: flex-start;
+      }
+
+      .device-id {
+        width: 100%;
+      }
+
+      .file-item,
+      .received-item {
+        align-items: flex-start;
+      }
+
+      .actions-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .actions-row .btn {
+        width: 100%;
       }
     }
   </style>
 </head>
 <body>
 <div class="app">
-  <div class="device-card">
-    <h3>YOUR DEVICE</h3>
-    <div class="device-info">
-      <span class="device-name" id="deviceName">QuickShare Device</span>
-      <span class="device-id" id="deviceIdDisplay" title="Tap to copy">-</span>
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark">✦</div>
+        <div class="brand-copy">
+          <div class="brand-title">QuickShare</div>
+          <div class="brand-sub">Secure peer transfer</div>
+        </div>
+      </div>
+      <div id="connectionPill" class="status-pill disconnected">Offline</div>
     </div>
-    <div class="connect-row">
-      <input type="text" id="remoteIdInput" placeholder="Enter peer ID" autocomplete="off">
-      <button class="btn accent" id="connectBtn">Connect</button>
+
+    <div class="device-card">
+      <div class="device-header">
+        <div class="section-label">Your device</div>
+        <div class="device-id" id="deviceIdDisplay" title="Tap to copy">-</div>
+      </div>
+
+      <div class="device-meta">
+        <div class="device-avatar">📱</div>
+        <div class="device-name" id="deviceName">QuickShare Device</div>
+      </div>
+
+      <div class="connect-row">
+        <input type="text" id="remoteIdInput" placeholder="Enter peer ID" autocomplete="off">
+        <button class="btn secondary" id="connectBtn">Connect</button>
+      </div>
     </div>
-  </div>
 
-  <div id="incomingRequest" class="incoming-box hidden">
-    <span id="incomingPeerName">Unknown device</span> wants to connect
-    <div>
-      <button class="btn success" id="acceptBtn">Accept</button>
-      <button class="btn danger" id="denyBtn">Deny</button>
+    <div id="incomingRequest" class="incoming-box hidden">
+      <div class="msg"><strong id="incomingPeerName">Unknown device</strong> wants to connect</div>
+      <div class="actions">
+        <button class="btn success" id="acceptBtn">Accept</button>
+        <button class="btn danger" id="denyBtn">Deny</button>
+      </div>
     </div>
-  </div>
 
-  <div id="connectionStatus" class="status-text disconnected">Waiting to connect...</div>
+    <div id="connectionStatus" class="status-bar disconnected">
+      <span class="status-dot"></span>
+      <span>Waiting to connect...</span>
+    </div>
 
-  <div class="tabs">
-    <div class="tab active" data-tab="send">SEND</div>
-    <div class="tab" data-tab="receive">RECEIVE</div>
-  </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="send">Send</button>
+      <button class="tab" data-tab="receive">Receive</button>
+    </div>
 
-  <div id="sendPanel" class="actions">
-    <button class="btn" id="selectFilesBtn">📁 Select Files</button>
-    <button class="btn" id="sendTextBtn">📝 Send Text</button>
-  </div>
+    <div id="sendPanel" class="panel">
+      <div class="panel-header">
+        <span>File transfer</span>
+      </div>
 
-  <div id="sendFileList" class="file-list"></div>
+      <div class="actions-row">
+        <button class="btn primary" id="selectFilesBtn">📁 Select Files</button>
+        <button class="btn primary" id="sendTextBtn">📝 Send Text</button>
+      </div>
 
-  <div id="sendFooter" class="actions hidden" style="margin-top: 0;">
-    <button class="btn accent" id="sendFilesBtn">📤 Send Files</button>
-  </div>
-  <div id="sendProgress" class="status-text hidden"></div>
+      <div id="sendFileList" class="file-list empty">No files selected</div>
 
-  <div id="receivePanel" class="file-list hidden"></div>
-  <div id="receiveStatus" class="status-text hidden"></div>
+      <div id="sendFooter" class="actions-row hidden" style="margin-top: 10px;">
+        <button class="btn secondary" id="sendFilesBtn">📤 Send Files</button>
+      </div>
 
-  <div class="actions hidden" id="disconnectContainer">
-    <button class="btn danger" id="disconnectBtn">Disconnect</button>
+      <div id="sendProgress" class="status-text hidden"></div>
+    </div>
+
+    <div id="receivePanel" class="panel hidden">
+      <div class="panel-header">
+        <span>Incoming</span>
+      </div>
+      <div id="receiveList" class="file-list empty">No items received yet</div>
+      <div id="receiveStatus" class="status-text hidden"></div>
+    </div>
+
+    <div class="actions-row hidden" id="disconnectContainer" style="margin-top: 14px;">
+      <button class="btn danger" id="disconnectBtn">Disconnect</button>
+    </div>
   </div>
 </div>
 
 <script>
-  (function() {
+  (function () {
     const deviceNameEl = document.getElementById('deviceName');
     const deviceIdEl = document.getElementById('deviceIdDisplay');
     const remoteIdInput = document.getElementById('remoteIdInput');
@@ -327,15 +710,17 @@
     const acceptBtn = document.getElementById('acceptBtn');
     const denyBtn = document.getElementById('denyBtn');
     const connectionStatus = document.getElementById('connectionStatus');
+    const connectionPill = document.getElementById('connectionPill');
     const tabs = document.querySelectorAll('.tab');
     const sendPanel = document.getElementById('sendPanel');
+    const receivePanel = document.getElementById('receivePanel');
     const sendFileList = document.getElementById('sendFileList');
     const sendFooter = document.getElementById('sendFooter');
     const sendFilesBtn = document.getElementById('sendFilesBtn');
     const sendProgress = document.getElementById('sendProgress');
     const selectFilesBtn = document.getElementById('selectFilesBtn');
     const sendTextBtn = document.getElementById('sendTextBtn');
-    const receivePanel = document.getElementById('receivePanel');
+    const receiveList = document.getElementById('receiveList');
     const receiveStatus = document.getElementById('receiveStatus');
     const disconnectContainer = document.getElementById('disconnectContainer');
     const disconnectBtn = document.getElementById('disconnectBtn');
@@ -356,10 +741,26 @@
 
     deviceIdEl.addEventListener('click', () => {
       navigator.clipboard.writeText(peerId).then(() => {
-        deviceIdEl.style.background = '#333';
-        setTimeout(() => deviceIdEl.style.background = '#000', 400);
+        deviceIdEl.style.background = 'rgba(76,201,240,0.08)';
+        setTimeout(() => deviceIdEl.style.background = 'rgba(12, 17, 25, 0.9)', 400);
       }).catch(() => alert('Copy manually: ' + peerId));
     });
+
+    function setConnectionState(connected) {
+      const statusText = connected ? 'Connected' : 'Waiting to connect...';
+      connectionStatus.classList.toggle('disconnected', !connected);
+      connectionStatus.innerHTML = '<span class="status-dot"></span><span>' + statusText + '</span>';
+
+      connectionPill.textContent = connected ? 'Online' : 'Offline';
+      connectionPill.classList.toggle('disconnected', !connected);
+
+      disconnectContainer.classList.toggle('hidden', !connected);
+
+      if (!connected) {
+        sendProgress.classList.add('hidden');
+        sendFooter.classList.add('hidden');
+      }
+    }
 
     function initPeer() {
       peer = new Peer(peerId, { debug: 0 });
@@ -382,23 +783,26 @@
 
       peer.on('error', (err) => {
         console.error('Peer error:', err);
-        connectionStatus.textContent = 'Error: ' + err.type;
-        connectionStatus.classList.add('disconnected');
+        setConnectionState(false);
+        connectionStatus.querySelector('span:last-child').textContent = 'Error: ' + err.type;
       });
     }
 
     function setupConnection(conn) {
       currentConnection = conn;
       incomingRequest.classList.add('hidden');
-      updateConnectionUI(true);
+      setConnectionState(true);
 
       conn.on('data', (data) => handleIncomingData(data));
       conn.on('close', () => {
         if (currentConnection === conn) {
           currentConnection = null;
-          updateConnectionUI(false);
+          setConnectionState(false);
+          selectedFiles = [];
+          renderSendFiles();
         }
       });
+
       conn.on('error', (err) => {
         console.error('Connection error:', err);
       });
@@ -419,8 +823,7 @@
       conn.on('open', () => setupConnection(conn));
       conn.on('error', (err) => {
         alert('Connection failed: ' + err);
-        connectionStatus.textContent = 'Connection failed';
-        connectionStatus.classList.add('disconnected');
+        setConnectionState(false);
       });
     }
 
@@ -444,26 +847,9 @@
         currentConnection.close();
         currentConnection = null;
       }
-      updateConnectionUI(false);
-    }
-
-    function updateConnectionUI(connected) {
-      if (connected && currentConnection) {
-        connectionStatus.textContent = 'Connected to: ' + currentConnection.peer.substring(0, 10) + '...';
-        connectionStatus.classList.remove('disconnected');
-        disconnectContainer.classList.remove('hidden');
-      } else {
-        connectionStatus.textContent = 'Waiting to connect...';
-        connectionStatus.classList.add('disconnected');
-        disconnectContainer.classList.add('hidden');
-      }
-
+      setConnectionState(false);
       selectedFiles = [];
       renderSendFiles();
-      if (!connected) {
-        sendFooter.classList.add('hidden');
-        sendProgress.classList.add('hidden');
-      }
     }
 
     function waitForDrain(conn) {
@@ -525,7 +911,7 @@
         sendProgress.classList.add('hidden');
         selectedFiles = [];
         renderSendFiles();
-      }, 1500);
+      }, 1200);
     }
 
     function sendTextMessage(text) {
@@ -537,6 +923,7 @@
 
     function handleIncomingData(data) {
       if (!data || !data.type) return;
+
       switch (data.type) {
         case 'file-start':
           incomingFiles.set(data.fileId, {
@@ -610,28 +997,34 @@
 
     function renderSendFiles() {
       sendFileList.innerHTML = '';
+
       if (selectedFiles.length === 0) {
-        sendFileList.innerHTML = '<div style="padding:12px; color:#aaa;">No files selected</div>';
+        sendFileList.classList.add('empty');
+        sendFileList.textContent = 'No files selected';
         sendFooter.classList.add('hidden');
         return;
       }
 
+      sendFileList.classList.remove('empty');
       selectedFiles.forEach((file, idx) => {
-        const div = document.createElement('div');
-        div.className = 'file-item';
-        div.innerHTML = `
-          <div class="file-info">
-            <span class="file-name">${escapeHtml(file.name)}</span>
-            <span class="file-size">${formatSize(file.size)}</span>
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.innerHTML = `
+          <div class="file-main">
+            <div class="file-icon">📄</div>
+            <div class="file-info">
+              <span class="file-name">${escapeHtml(file.name)}</span>
+              <span class="file-size">${formatSize(file.size)}</span>
+            </div>
           </div>
-          <button class="remove-btn" data-index="${idx}">×</button>
+          <button class="remove-btn" data-index="${idx}" aria-label="Remove file">×</button>
         `;
-        sendFileList.appendChild(div);
+        sendFileList.appendChild(item);
       });
 
       sendFooter.classList.remove('hidden');
 
-      document.querySelectorAll('.remove-btn').forEach(button => {
+      document.querySelectorAll('.remove-btn').forEach((button) => {
         button.addEventListener('click', (event) => {
           const index = parseInt(event.target.dataset.index, 10);
           selectedFiles.splice(index, 1);
@@ -641,35 +1034,46 @@
     }
 
     function renderReceivedItems() {
-      receivePanel.innerHTML = '';
+      receiveList.innerHTML = '';
+
       if (receivedItems.length === 0) {
-        receivePanel.innerHTML = '<div style="padding:12px; color:#aaa;">No items received yet</div>';
+        receiveList.classList.add('empty');
+        receiveList.textContent = 'No items received yet';
         return;
       }
 
+      receiveList.classList.remove('empty');
       receivedItems.forEach((item) => {
         const div = document.createElement('div');
         div.className = 'received-item';
 
         if (item.type === 'file') {
           div.innerHTML = `
-            <span>📄</span>
-            <span class="file-name">${escapeHtml(item.name)}</span>
-            <span class="file-size">${formatSize(item.size)}</span>
-            <span style="color:#4caf50; font-size:12px;">Saved</span>
+            <div class="file-main">
+              <div class="file-icon">📄</div>
+              <div class="file-info">
+                <span class="file-name">${escapeHtml(item.name)}</span>
+                <span class="file-size">${formatSize(item.size)}</span>
+              </div>
+            </div>
+            <span style="color:#2fd38b; font-size:0.76rem; font-weight:700;">Saved</span>
           `;
         } else if (item.type === 'text') {
           div.innerHTML = `
-            <span>📝</span>
-            <span class="file-name" style="flex:1;">${escapeHtml(item.text)}</span>
+            <div class="file-main">
+              <div class="file-icon">📝</div>
+              <div class="file-info">
+                <span class="file-name">${escapeHtml(item.text)}</span>
+              </div>
+            </div>
             <span class="copy-text" data-text="${escapeHtml(item.text)}">Copy</span>
           `;
         }
 
-        receivePanel.appendChild(div);
+        receiveList.appendChild(div);
       });
 
-      document.querySelectorAll('.copy-text').forEach(el => {
+      document.querySelectorAll('.copy-text').forEach((el) => {
         el.addEventListener('click', (event) => {
           const text = event.target.dataset.text;
           navigator.clipboard.writeText(text).then(() => {
@@ -689,28 +1093,24 @@
     }
 
     function escapeHtml(text) {
-      return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
     }
 
-    tabs.forEach(tab => {
+    tabs.forEach((tab) => {
       tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
+        tabs.forEach((t) => t.classList.remove('active'));
         tab.classList.add('active');
         activeTab = tab.dataset.tab;
 
         if (activeTab === 'send') {
           sendPanel.classList.remove('hidden');
-          sendFileList.classList.remove('hidden');
-          sendFooter.classList.toggle('hidden', selectedFiles.length === 0);
           receivePanel.classList.add('hidden');
-          receiveStatus.classList.add('hidden');
+          sendFooter.classList.toggle('hidden', selectedFiles.length === 0);
         } else {
           sendPanel.classList.add('hidden');
-          sendFileList.classList.add('hidden');
+          receivePanel.classList.remove('hidden');
           sendFooter.classList.add('hidden');
           sendProgress.classList.add('hidden');
-          receivePanel.classList.remove('hidden');
-          receiveStatus.classList.remove('hidden');
         }
       });
     });
@@ -721,7 +1121,7 @@
       input.multiple = true;
       input.onchange = (event) => {
         const files = Array.from(event.target.files);
-        files.forEach(file => {
+        files.forEach((file) => {
           selectedFiles.push({
             name: file.name,
             size: file.size,
@@ -740,9 +1140,7 @@
       }
     });
 
-    sendFilesBtn.addEventListener('click', () => {
-      sendFiles();
-    });
+    sendFilesBtn.addEventListener('click', () => sendFiles());
 
     connectBtn.addEventListener('click', () => {
       const remoteId = remoteIdInput.value.trim();
@@ -757,6 +1155,7 @@
 
     renderSendFiles();
     renderReceivedItems();
+    setConnectionState(false);
     initPeer();
 
     window.addEventListener('beforeunload', () => {
