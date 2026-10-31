@@ -1052,7 +1052,11 @@
         metadata: { app: 'quickshare' }
       });
 
-      conn.on('open', () => setupConnection(conn));
+      conn.on('open', () => {
+        if (conn.open) {
+          setupConnection(conn);
+        }
+      });
       conn.on('error', (err) => {
         alert('Connection failed: ' + err);
         setConnectionState(false);
@@ -1098,22 +1102,32 @@
     }
 
     async function sendSingleFile(file) {
-      if (!currentConnection) return;
+      if (!currentConnection || !currentConnection.open) {
+        return;
+      }
 
-      const buffer = await file.arrayBuffer();
+      const sourceFile = file && file.fileObj ? file.fileObj : file;
+      if (!sourceFile || typeof sourceFile.arrayBuffer !== 'function') {
+        return;
+      }
+
+      const buffer = await sourceFile.arrayBuffer();
       const totalChunks = Math.ceil(buffer.byteLength / SAFE_CHUNK_SIZE);
-      const fileId = Date.now() + '-' + Math.random().toString(16).slice(2) + '-' + file.name;
+      const fileId = Date.now() + '-' + Math.random().toString(16).slice(2) + '-' + (file && file.name ? file.name : sourceFile.name);
 
       currentConnection.send({
         type: 'file-start',
         fileId,
-        name: file.name,
-        size: file.size,
+        name: (file && file.name) ? file.name : sourceFile.name,
+        size: (file && file.size) ? file.size : sourceFile.size,
         totalChunks
       });
 
       for (let i = 0; i < totalChunks; i++) {
-        await waitForDrain(currentConnection);
+        while (currentConnection.bufferedAmount > MAX_BUFFERED_BYTES) {
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+
         const chunk = buffer.slice(i * SAFE_CHUNK_SIZE, (i + 1) * SAFE_CHUNK_SIZE);
         currentConnection.send({
           type: 'file-chunk',
@@ -1154,13 +1168,14 @@
     const incomingFiles = new Map();
 
     function handleIncomingData(data) {
-      if (!data || !data.type) return;
+      if (!data || typeof data !== 'object') return;
 
       switch (data.type) {
         case 'file-start':
+          if (!data.fileId || !data.name || data.totalChunks == null) return;
           incomingFiles.set(data.fileId, {
             name: data.name,
-            size: data.size,
+            size: data.size || 0,
             chunks: new Array(data.totalChunks),
             totalChunks: data.totalChunks,
             receivedChunks: 0
@@ -1170,9 +1185,12 @@
           break;
 
         case 'file-chunk': {
+          if (data.fileId == null || data.chunkIndex == null || !data.data) return;
           const fileInfo = incomingFiles.get(data.fileId);
           if (!fileInfo) return;
-          fileInfo.chunks[data.chunkIndex] = new Uint8Array(data.data);
+
+          const chunk = data.data instanceof ArrayBuffer ? new Uint8Array(data.data) : new Uint8Array(data.data);
+          fileInfo.chunks[data.chunkIndex] = chunk;
           fileInfo.receivedChunks++;
           const progress = Math.round((fileInfo.receivedChunks / fileInfo.totalChunks) * 100);
           receiveStatus.textContent = `Receiving ${fileInfo.name} (${progress}%)`;
@@ -1180,10 +1198,11 @@
         }
 
         case 'file-end': {
+          if (data.fileId == null) return;
           const completeFile = incomingFiles.get(data.fileId);
           if (!completeFile) return;
 
-          const blob = new Blob(completeFile.chunks, { type: 'application/octet-stream' });
+          const blob = new Blob(completeFile.chunks.filter(Boolean), { type: 'application/octet-stream' });
           const fileName = completeFile.name;
           const fileSize = completeFile.size;
 
@@ -1196,6 +1215,7 @@
         }
 
         case 'text':
+          if (!data.text) return;
           receivedItems.push({ type: 'text', text: data.text });
           renderReceivedItems();
           receiveStatus.classList.remove('hidden');
