@@ -358,6 +358,7 @@
     let selectedFiles = [];              // { name, size, fileObj }
     let receivedItems = [];              // { type:'file'|'text', name, size, blob, text }
     let activeTab = 'send';
+    const TRANSFER_CHUNK_SIZE = 512 * 1024; // 512KB per chunk for much higher throughput
 
     // PeerJS ID generation (random)
     const peerId = 'quickshare-' + Math.random().toString(36).substring(2, 10);
@@ -427,7 +428,10 @@
       if (currentConnection) {
         currentConnection.close();
       }
-      const conn = peer.connect(remoteId, { reliable: true });
+      const conn = peer.connect(remoteId, {
+        reliable: false,
+        ordered: false
+      });
       conn.on('open', () => {
         setupConnection(conn);
       });
@@ -484,6 +488,7 @@
     // --- Data handling (send) ---
     function sendFiles() {
       if (!currentConnection || selectedFiles.length === 0) return;
+
       sendProgress.classList.remove('hidden');
       sendProgress.textContent = 'Preparing...';
       let sentCount = 0;
@@ -491,22 +496,24 @@
 
       function sendNext(index) {
         if (index >= total) {
-          sendProgress.textContent = 'All files sent!';
-          setTimeout(() => sendProgress.classList.add('hidden'), 2000);
-          selectedFiles = [];
-          renderSendFiles();
+          sendProgress.textContent = `Sent ${total} file${total === 1 ? '' : 's'}!`;
+          setTimeout(() => {
+            sendProgress.classList.add('hidden');
+            selectedFiles = [];
+            renderSendFiles();
+          }, 1500);
           return;
         }
+
         const file = selectedFiles[index];
         sendProgress.textContent = `Sending ${file.name} (${formatSize(file.size)})...`;
-        // Read file as ArrayBuffer and chunk it
+
         const reader = new FileReader();
         reader.onload = (e) => {
           const buffer = e.target.result;
-          const chunkSize = 16 * 1024; // 16KB chunks
-          const totalChunks = Math.ceil(buffer.byteLength / chunkSize);
-          const fileId = Date.now() + '-' + file.name;
-          // Send file header
+          const totalChunks = Math.ceil(buffer.byteLength / TRANSFER_CHUNK_SIZE);
+          const fileId = Date.now() + '-' + Math.random().toString(16).slice(2) + '-' + file.name;
+
           currentConnection.send({
             type: 'file-start',
             fileId: fileId,
@@ -514,8 +521,9 @@
             size: file.size,
             totalChunks: totalChunks
           });
+
           for (let i = 0; i < totalChunks; i++) {
-            const chunk = buffer.slice(i * chunkSize, (i+1) * chunkSize);
+            const chunk = buffer.slice(i * TRANSFER_CHUNK_SIZE, (i + 1) * TRANSFER_CHUNK_SIZE);
             currentConnection.send({
               type: 'file-chunk',
               fileId: fileId,
@@ -523,16 +531,19 @@
               data: chunk
             });
           }
-          // File end marker
+
           currentConnection.send({
             type: 'file-end',
             fileId: fileId
           });
+
           sentCount++;
-          setTimeout(() => sendNext(index+1), 200); // small delay between files
+          sendProgress.textContent = `Sent ${sentCount}/${total} files`;
+          sendNext(index + 1);
         };
         reader.readAsArrayBuffer(file.fileObj);
       }
+
       sendNext(0);
     }
 
