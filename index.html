@@ -259,7 +259,6 @@
       display: none !important;
     }
 
-    /* Responsive */
     @media (max-width: 400px) {
       .btn {
         padding: 12px 16px;
@@ -270,7 +269,6 @@
 </head>
 <body>
 <div class="app">
-  <!-- Device info card -->
   <div class="device-card">
     <h3>YOUR DEVICE</h3>
     <div class="device-info">
@@ -283,7 +281,6 @@
     </div>
   </div>
 
-  <!-- Incoming request (hidden by default) -->
   <div id="incomingRequest" class="incoming-box hidden">
     <span id="incomingPeerName">Unknown device</span> wants to connect
     <div>
@@ -292,35 +289,28 @@
     </div>
   </div>
 
-  <!-- Status line -->
   <div id="connectionStatus" class="status-text disconnected">Waiting to connect...</div>
 
-  <!-- Tabs -->
   <div class="tabs">
     <div class="tab active" data-tab="send">SEND</div>
     <div class="tab" data-tab="receive">RECEIVE</div>
   </div>
 
-  <!-- Send actions -->
   <div id="sendPanel" class="actions">
     <button class="btn" id="selectFilesBtn">📁 Select Files</button>
     <button class="btn" id="sendTextBtn">📝 Send Text</button>
   </div>
 
-  <!-- Send file list -->
   <div id="sendFileList" class="file-list"></div>
 
-  <!-- Send button & progress -->
   <div id="sendFooter" class="actions hidden" style="margin-top: 0;">
     <button class="btn accent" id="sendFilesBtn">📤 Send Files</button>
   </div>
   <div id="sendProgress" class="status-text hidden"></div>
 
-  <!-- Receive panel (hidden initially) -->
   <div id="receivePanel" class="file-list hidden"></div>
   <div id="receiveStatus" class="status-text hidden"></div>
 
-  <!-- Disconnect button (visible when connected) -->
   <div class="actions hidden" id="disconnectContainer">
     <button class="btn danger" id="disconnectBtn">Disconnect</button>
   </div>
@@ -328,7 +318,6 @@
 
 <script>
   (function() {
-    // --- DOM elements ---
     const deviceNameEl = document.getElementById('deviceName');
     const deviceIdEl = document.getElementById('deviceIdDisplay');
     const remoteIdInput = document.getElementById('remoteIdInput');
@@ -351,21 +340,20 @@
     const disconnectContainer = document.getElementById('disconnectContainer');
     const disconnectBtn = document.getElementById('disconnectBtn');
 
-    // --- State ---
     let peer = null;
-    let currentConnection = null;         // active data connection (only one)
-    let incomingConn = null;             // pending incoming connection
-    let selectedFiles = [];              // { name, size, fileObj }
-    let receivedItems = [];              // { type:'file'|'text', name, size, blob, text }
+    let currentConnection = null;
+    let incomingConn = null;
+    let selectedFiles = [];
+    let receivedItems = [];
     let activeTab = 'send';
-    const TRANSFER_CHUNK_SIZE = 512 * 1024; // 512KB per chunk for much higher throughput
 
-    // PeerJS ID generation (random)
+    const SAFE_CHUNK_SIZE = 128 * 1024;
+    const MAX_BUFFERED_BYTES = 2 * 1024 * 1024;
+
     const peerId = 'quickshare-' + Math.random().toString(36).substring(2, 10);
     deviceIdEl.textContent = peerId;
-    deviceNameEl.textContent = 'QuickShare (' + peerId.substring(0,6) + '...)';
+    deviceNameEl.textContent = 'QuickShare (' + peerId.substring(0, 6) + '...)';
 
-    // Copy device ID on tap
     deviceIdEl.addEventListener('click', () => {
       navigator.clipboard.writeText(peerId).then(() => {
         deviceIdEl.style.background = '#333';
@@ -373,28 +361,22 @@
       }).catch(() => alert('Copy manually: ' + peerId));
     });
 
-    // --- Initialize PeerJS ---
     function initPeer() {
-      peer = new Peer(peerId, {
-        debug: 0
-      });
+      peer = new Peer(peerId, { debug: 0 });
 
       peer.on('open', (id) => {
         console.log('Peer ready, ID:', id);
         deviceIdEl.textContent = id;
       });
 
-      // Incoming connection
       peer.on('connection', (conn) => {
         if (currentConnection) {
-          // Already connected, reject new one
-          conn.on('open', () => conn.send({type: 'busy'}));
+          conn.on('open', () => conn.send({ type: 'busy' }));
           setTimeout(() => conn.close(), 500);
           return;
         }
-        // Show incoming request
         incomingConn = conn;
-        incomingPeerName.textContent = conn.peer.substring(0,10) + '...';
+        incomingPeerName.textContent = conn.peer.substring(0, 10) + '...';
         incomingRequest.classList.remove('hidden');
       });
 
@@ -405,7 +387,6 @@
       });
     }
 
-    // --- Connection handling ---
     function setupConnection(conn) {
       currentConnection = conn;
       incomingRequest.classList.add('hidden');
@@ -428,13 +409,14 @@
       if (currentConnection) {
         currentConnection.close();
       }
+
       const conn = peer.connect(remoteId, {
-        reliable: false,
-        ordered: false
+        reliable: true,
+        ordered: true,
+        metadata: { app: 'quickshare' }
       });
-      conn.on('open', () => {
-        setupConnection(conn);
-      });
+
+      conn.on('open', () => setupConnection(conn));
       conn.on('error', (err) => {
         alert('Connection failed: ' + err);
         connectionStatus.textContent = 'Connection failed';
@@ -450,7 +432,7 @@
 
     function denyIncoming() {
       if (incomingConn) {
-        incomingConn.on('open', () => incomingConn.send({type: 'denied'}));
+        incomingConn.on('open', () => incomingConn.send({ type: 'denied' }));
         setTimeout(() => incomingConn.close(), 500);
         incomingConn = null;
       }
@@ -467,16 +449,15 @@
 
     function updateConnectionUI(connected) {
       if (connected && currentConnection) {
-        connectionStatus.textContent = 'Connected to: ' + currentConnection.peer.substring(0,10) + '...';
+        connectionStatus.textContent = 'Connected to: ' + currentConnection.peer.substring(0, 10) + '...';
         connectionStatus.classList.remove('disconnected');
         disconnectContainer.classList.remove('hidden');
       } else {
         connectionStatus.textContent = 'Waiting to connect...';
         connectionStatus.classList.add('disconnected');
         disconnectContainer.classList.add('hidden');
-        // clear send/receive UI?
       }
-      // Reset file selection when connection changes
+
       selectedFiles = [];
       renderSendFiles();
       if (!connected) {
@@ -485,83 +466,78 @@
       }
     }
 
-    // --- Data handling (send) ---
-    function sendFiles() {
+    function waitForDrain(conn) {
+      return new Promise((resolve) => {
+        const check = () => {
+          if (!conn || conn.bufferedAmount === undefined || conn.bufferedAmount <= MAX_BUFFERED_BYTES) {
+            resolve();
+            return;
+          }
+          setTimeout(check, 25);
+        };
+        check();
+      });
+    }
+
+    async function sendSingleFile(file) {
+      if (!currentConnection) return;
+
+      const buffer = await file.arrayBuffer();
+      const totalChunks = Math.ceil(buffer.byteLength / SAFE_CHUNK_SIZE);
+      const fileId = Date.now() + '-' + Math.random().toString(16).slice(2) + '-' + file.name;
+
+      currentConnection.send({
+        type: 'file-start',
+        fileId,
+        name: file.name,
+        size: file.size,
+        totalChunks
+      });
+
+      for (let i = 0; i < totalChunks; i++) {
+        await waitForDrain(currentConnection);
+        const chunk = buffer.slice(i * SAFE_CHUNK_SIZE, (i + 1) * SAFE_CHUNK_SIZE);
+        currentConnection.send({
+          type: 'file-chunk',
+          fileId,
+          chunkIndex: i,
+          data: chunk
+        });
+      }
+
+      currentConnection.send({ type: 'file-end', fileId });
+    }
+
+    async function sendFiles() {
       if (!currentConnection || selectedFiles.length === 0) return;
 
       sendProgress.classList.remove('hidden');
       sendProgress.textContent = 'Preparing...';
-      let sentCount = 0;
-      const total = selectedFiles.length;
 
-      function sendNext(index) {
-        if (index >= total) {
-          sendProgress.textContent = `Sent ${total} file${total === 1 ? '' : 's'}!`;
-          setTimeout(() => {
-            sendProgress.classList.add('hidden');
-            selectedFiles = [];
-            renderSendFiles();
-          }, 1500);
-          return;
-        }
-
-        const file = selectedFiles[index];
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
         sendProgress.textContent = `Sending ${file.name} (${formatSize(file.size)})...`;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const buffer = e.target.result;
-          const totalChunks = Math.ceil(buffer.byteLength / TRANSFER_CHUNK_SIZE);
-          const fileId = Date.now() + '-' + Math.random().toString(16).slice(2) + '-' + file.name;
-
-          currentConnection.send({
-            type: 'file-start',
-            fileId: fileId,
-            name: file.name,
-            size: file.size,
-            totalChunks: totalChunks
-          });
-
-          for (let i = 0; i < totalChunks; i++) {
-            const chunk = buffer.slice(i * TRANSFER_CHUNK_SIZE, (i + 1) * TRANSFER_CHUNK_SIZE);
-            currentConnection.send({
-              type: 'file-chunk',
-              fileId: fileId,
-              chunkIndex: i,
-              data: chunk
-            });
-          }
-
-          currentConnection.send({
-            type: 'file-end',
-            fileId: fileId
-          });
-
-          sentCount++;
-          sendProgress.textContent = `Sent ${sentCount}/${total} files`;
-          sendNext(index + 1);
-        };
-        reader.readAsArrayBuffer(file.fileObj);
+        await sendSingleFile(file);
       }
 
-      sendNext(0);
+      sendProgress.textContent = 'All files sent!';
+      setTimeout(() => {
+        sendProgress.classList.add('hidden');
+        selectedFiles = [];
+        renderSendFiles();
+      }, 1500);
     }
 
     function sendTextMessage(text) {
       if (!currentConnection || !text.trim()) return;
-      currentConnection.send({
-        type: 'text',
-        text: text
-      });
-      // Optional: show sent confirmation locally?
+      currentConnection.send({ type: 'text', text: text.trim() });
     }
 
-    // --- Data handling (receive) ---
-    const incomingFiles = new Map(); // fileId -> { name, size, chunks: [], totalChunks }
+    const incomingFiles = new Map();
 
     function handleIncomingData(data) {
       if (!data || !data.type) return;
-      switch(data.type) {
+      switch (data.type) {
         case 'file-start':
           incomingFiles.set(data.fileId, {
             name: data.name,
@@ -573,7 +549,8 @@
           receiveStatus.classList.remove('hidden');
           receiveStatus.textContent = `Receiving ${data.name}...`;
           break;
-        case 'file-chunk':
+
+        case 'file-chunk': {
           const fileInfo = incomingFiles.get(data.fileId);
           if (!fileInfo) return;
           fileInfo.chunks[data.chunkIndex] = new Uint8Array(data.data);
@@ -581,20 +558,24 @@
           const progress = Math.round((fileInfo.receivedChunks / fileInfo.totalChunks) * 100);
           receiveStatus.textContent = `Receiving ${fileInfo.name} (${progress}%)`;
           break;
-        case 'file-end':
+        }
+
+        case 'file-end': {
           const completeFile = incomingFiles.get(data.fileId);
           if (!completeFile) return;
-          // Assemble blob
+
           const blob = new Blob(completeFile.chunks, { type: 'application/octet-stream' });
           const fileName = completeFile.name;
           const fileSize = completeFile.size;
-          receivedItems.push({ type: 'file', name: fileName, size: fileSize, blob: blob });
+
+          receivedItems.push({ type: 'file', name: fileName, size: fileSize, blob });
           incomingFiles.delete(data.fileId);
           receiveStatus.textContent = `Received ${fileName}`;
           renderReceivedItems();
-          // Auto-save using download (or File System Access API)
           saveFile(blob, fileName);
           break;
+        }
+
         case 'text':
           receivedItems.push({ type: 'text', text: data.text });
           renderReceivedItems();
@@ -602,23 +583,21 @@
           receiveStatus.textContent = 'Text message received';
           setTimeout(() => receiveStatus.classList.add('hidden'), 2000);
           break;
+
         case 'busy':
           alert('Peer is already connected to someone else.');
           break;
+
         case 'denied':
           alert('Connection denied by peer.');
           break;
-        default: break;
+
+        default:
+          break;
       }
     }
 
     function saveFile(blob, fileName) {
-      // Try File System Access API for direct saving to a chosen directory
-      if (window.showDirectoryPicker) {
-        // This requires user gesture; we can ask once.
-        // For simplicity, we'll create a download link.
-      }
-      // Fallback: trigger download
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -629,7 +608,6 @@
       URL.revokeObjectURL(url);
     }
 
-    // --- UI rendering ---
     function renderSendFiles() {
       sendFileList.innerHTML = '';
       if (selectedFiles.length === 0) {
@@ -637,24 +615,25 @@
         sendFooter.classList.add('hidden');
         return;
       }
-      selectedFiles.forEach((f, idx) => {
+
+      selectedFiles.forEach((file, idx) => {
         const div = document.createElement('div');
         div.className = 'file-item';
         div.innerHTML = `
           <div class="file-info">
-            <span class="file-name">${escapeHtml(f.name)}</span>
-            <span class="file-size">${formatSize(f.size)}</span>
+            <span class="file-name">${escapeHtml(file.name)}</span>
+            <span class="file-size">${formatSize(file.size)}</span>
           </div>
           <button class="remove-btn" data-index="${idx}">×</button>
         `;
         sendFileList.appendChild(div);
       });
+
       sendFooter.classList.remove('hidden');
 
-      // Remove handlers
-      document.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const index = parseInt(e.target.dataset.index);
+      document.querySelectorAll('.remove-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+          const index = parseInt(event.target.dataset.index, 10);
           selectedFiles.splice(index, 1);
           renderSendFiles();
         });
@@ -667,9 +646,11 @@
         receivePanel.innerHTML = '<div style="padding:12px; color:#aaa;">No items received yet</div>';
         return;
       }
-      receivedItems.forEach((item, idx) => {
+
+      receivedItems.forEach((item) => {
         const div = document.createElement('div');
         div.className = 'received-item';
+
         if (item.type === 'file') {
           div.innerHTML = `
             <span>📄</span>
@@ -684,22 +665,21 @@
             <span class="copy-text" data-text="${escapeHtml(item.text)}">Copy</span>
           `;
         }
+
         receivePanel.appendChild(div);
       });
 
-      // Copy text handlers
       document.querySelectorAll('.copy-text').forEach(el => {
-        el.addEventListener('click', (e) => {
-          const text = e.target.dataset.text;
+        el.addEventListener('click', (event) => {
+          const text = event.target.dataset.text;
           navigator.clipboard.writeText(text).then(() => {
-            e.target.textContent = 'Copied!';
-            setTimeout(() => e.target.textContent = 'Copy', 1500);
+            event.target.textContent = 'Copied!';
+            setTimeout(() => event.target.textContent = 'Copy', 1500);
           });
         });
       });
     }
 
-    // Helper: format bytes
     function formatSize(bytes) {
       if (bytes === 0) return '0 B';
       const k = 1024;
@@ -709,15 +689,15 @@
     }
 
     function escapeHtml(text) {
-      return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    // Tab switching
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
         tabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         activeTab = tab.dataset.tab;
+
         if (activeTab === 'send') {
           sendPanel.classList.remove('hidden');
           sendFileList.classList.remove('hidden');
@@ -735,13 +715,12 @@
       });
     });
 
-    // File selection
     selectFilesBtn.addEventListener('click', () => {
       const input = document.createElement('input');
       input.type = 'file';
       input.multiple = true;
-      input.onchange = (e) => {
-        const files = Array.from(e.target.files);
+      input.onchange = (event) => {
+        const files = Array.from(event.target.files);
         files.forEach(file => {
           selectedFiles.push({
             name: file.name,
@@ -754,7 +733,6 @@
       input.click();
     });
 
-    // Send text dialog
     sendTextBtn.addEventListener('click', () => {
       const text = prompt('Enter text message:');
       if (text && text.trim()) {
@@ -762,10 +740,10 @@
       }
     });
 
-    // Send files button
-    sendFilesBtn.addEventListener('click', sendFiles);
+    sendFilesBtn.addEventListener('click', () => {
+      sendFiles();
+    });
 
-    // Connect button
     connectBtn.addEventListener('click', () => {
       const remoteId = remoteIdInput.value.trim();
       if (!remoteId) return alert('Enter a peer ID');
@@ -773,24 +751,18 @@
       connectToPeer(remoteId);
     });
 
-    // Accept/Deny
     acceptBtn.addEventListener('click', acceptIncoming);
     denyBtn.addEventListener('click', denyIncoming);
-
-    // Disconnect
     disconnectBtn.addEventListener('click', disconnect);
 
-    // Initial render
     renderSendFiles();
     renderReceivedItems();
     initPeer();
 
-    // Cleanup on page unload
     window.addEventListener('beforeunload', () => {
       if (currentConnection) currentConnection.close();
       if (peer) peer.destroy();
     });
-
   })();
 </script>
 </body>
